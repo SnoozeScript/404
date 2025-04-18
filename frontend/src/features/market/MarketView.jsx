@@ -19,6 +19,7 @@ const MarketView = () => {
         const summaryJson = await summaryRes.json();
         setSummary(summaryJson.summary || "");
         setError("");
+      // eslint-disable-next-line no-unused-vars
       } catch (err) {
         setError("Failed to load market data.");
       }

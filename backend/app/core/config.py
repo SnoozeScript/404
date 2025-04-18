@@ -10,6 +10,8 @@ class Settings:
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "YOUR_GROQ_API_KEY_NOT_SET")
     # Add other settings if needed
     PROJECT_NAME: str = "FarmGenius Backend"
+    MAX_FILE_SIZE_MB: int = 5 # Max file size in Megabytes for uploads
+
 
 # Use lru_cache to load settings only once
 @lru_cache

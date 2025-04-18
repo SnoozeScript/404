@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crop Yield Prediction</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container {
+            max-width: 1200px;
+        }
+        .header {
+            background: linear-gradient(135deg, #1e7b1e 0%, #3ca55c 100%);
+            color: white;
+            padding: 2rem 0;
+            border-radius: 0 0 10px 10px;
+            margin-bottom: 2rem;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1.5rem;
+            border: none;
+        }
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            font-weight: 600;
+        }
+        .btn-primary {
+            background-color: #2e8b57;
+            border-color: #2e8b57;
+        }
+        .btn-primary:hover {
+            background-color: #1e7b1e;
+            border-color: #1e7b1e;
+        }
+        .result-card {
+            display: none;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+        .weather-card {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        }
+        .recommendation-item {
+            padding: 10px;
+            border-left: 3px solid #2e8b57;
+            margin-bottom: 10px;
+            background-color: #f8f9fa;
+        }
+        .loader {
+            display: none;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #2e8b57;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #map {
+            height: 300px;
+            width: 100%;
+            border-radius: 10px;
+            position: relative;
+        }
+        #map-loading {
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .feature-icon {
+            font-size: 2rem;
+            color: #2e8b57;
+            margin-bottom: 1rem;
+        }
+        .feature-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+        .soil-data-card {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1 class="text-center"><i class="fas fa-seedling me-2"></i>Crop Yield Prediction System</h1>
+            <p class="text-center">Get accurate yield predictions with minimal inputs using real-time data</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </div>
+                    <h5>Location-Based</h5>
+                    <p>Uses your location to fetch real-time weather and soil data</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-cloud-sun-rain"></i>
+                    </div>
+                    <h5>Weather Integration</h5>
+                    <p>Incorporates current weather conditions for accurate predictions</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-lightbulb"></i>
+                    </div>
+                    <h5>Smart Recommendations</h5>
+                    <p>Get personalized farming recommendations based on predictions</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-map me-2"></i>Select Location
+                    </div>
+                    <div class="card-body">
+                        <div id="map"></div>
+                        <div class="mt-3">
+                            <p><strong>Selected Location:</strong> <span id="selected-location">Not selected</span></p>
+                            <p><strong>Coordinates:</strong> <span id="coordinates">Not selected</span></p>
+                            <button id="use-my-location" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-location-arrow me-1"></i> Use My Location
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card weather-card">
+                    <div class="card-header">
+                        <i class="fas fa-cloud-sun me-2"></i>Current Weather Conditions
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><i class="fas fa-temperature-high me-2"></i><strong>Temperature:</strong> <span id="temperature">--</span> °C</p>
+                                <p><i class="fas fa-tint me-2"></i><strong>Humidity:</strong> <span id="humidity">--</span> %</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><i class="fas fa-cloud-rain me-2"></i><strong>Rainfall:</strong> <span id="rainfall">--</span> mm</p>
+                                <p><i class="fas fa-wind me-2"></i><strong>Wind Speed:</strong> <span id="wind-speed">--</span> km/h</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card soil-data-card">
+                    <div class="card-header">
+                        <i class="fas fa-layer-group me-2"></i>Soil Data
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>pH:</strong> <span id="soil-ph">--</span></p>
+                                <p><strong>Nitrogen (N):</strong> <span id="soil-n">--</span> kg/ha</p>
+                                <p><strong>Phosphorus (P):</strong> <span id="soil-p">--</span> kg/ha</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Potassium (K):</strong> <span id="soil-k">--</span> kg/ha</p>
+                                <p><strong>Organic Carbon:</strong> <span id="soil-oc">--</span> %</p>
+                            </div>
+                        </div>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" id="use-custom-soil">
+                            <label class="form-check-label" for="use-custom-soil">
+                                Use custom soil values
+                            </label>
+                        </div>
+                        <div id="custom-soil-inputs" class="mt-3" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="custom-ph" class="form-label">pH</label>
+                                        <input type="number" class="form-control" id="custom-ph" step="0.1" min="0" max="14">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="custom-n" class="form-label">Nitrogen (N) kg/ha</label>
+                                        <input type="number" class="form-control" id="custom-n">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="custom-p" class="form-label">Phosphorus (P) kg/ha</label>
+                                        <input type="number" class="form-control" id="custom-p">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="custom-k" class="form-label">Potassium (K) kg/ha</label>
+                                        <input type="number" class="form-control" id="custom-k">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="custom-oc" class="form-label">Organic Carbon %</label>
+                                        <input type="number" class="form-control" id="custom-oc" step="0.01" min="0" max="100">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-edit me-2"></i>Enter Crop Details
+                    </div>
+                    <div class="card-body">
+                        <form id="prediction-form">
+                            <div class="mb-3">
+                                <label for="crop" class="form-label">Crop</label>
+                                <select class="form-select" id="crop" required>
+                                    <option value="" selected disabled>Select crop</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="season" class="form-label">Season</label>
+                                <select class="form-select" id="season" required>
+                                    <option value="" selected disabled>Select season</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="state" class="form-label">State</label>
+                                <select class="form-select" id="state" required>
+                                    <option value="" selected disabled>Select state</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="area" class="form-label">Area (hectares)</label>
+                                <input type="number" class="form-control" id="area" required min="0.1" step="0.1">
+                            </div>
+                            <div class="mb-3">
+                                <label for="fertilizer" class="form-label">Fertilizer (kg/ha)</label>
+                                <input type="number" class="form-control" id="fertilizer" required min="0">
+                            </div>
+                            <div class="mb-3">
+                                <label for="pesticide" class="form-label">Pesticide (kg/ha)</label>
+                                <input type="number" class="form-control" id="pesticide" required min="0">
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-calculator me-2"></i>Predict Yield
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card result-card" id="result-card">
+                    <div class="card-header">
+                        <i class="fas fa-chart-line me-2"></i>Prediction Results
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="alert alert-success">
+                                    <h5 class="alert-heading">Predicted Yield</h5>
+                                    <h3 id="predicted-yield">-- tonnes/ha</h3>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="alert alert-info">
+                                    <h5 class="alert-heading">Estimated Production</h5>
+                                    <h3 id="estimated-production">-- tonnes</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <h5><i class="fas fa-lightbulb me-2"></i>Recommendations</h5>
+                            <div id="recommendations-list">
+                                <!-- Recommendations will be added here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="loader" id="loader"></div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="mt-5 mb-3">
+        <div class="container">
+            <p class="text-center text-muted">© 2023 Crop Yield Prediction System | Powered by AI and Google APIs</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let map;
+        let marker;
+        let selectedLat;
+        let selectedLng;
+
+        // Optimized Google Maps loading
+        function loadGoogleMaps() {
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&loading=async&libraries=marker&callback=initMap`;
+            script.async = true;
+            script.defer = true;
+            document.head.appendChild(script);
+        }
+
+        // Initialize map with modern markers
+        window.initMap = async function() {
+            try {
+                // Show loading state
+                document.getElementById("map").innerHTML = `
+                    <div id="map-loading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading map...</span>
+                        </div>
+                    </div>
+                `;
+
+                // Load required libraries
+                const { Map } = await google.maps.importLibrary("maps");
+                const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+
+                // Create map
+                map = new Map(document.getElementById("map"), {
+                    center: { lat: 19.7515, lng: 75.7139 },
+                    zoom: 7,
+                });
+
+                // Add click event to map
+                map.addListener("click", async (event) => {
+                    await placeMarker(event.latLng);
+                    updateLocationInfo(event.latLng);
+                    fetchWeatherData(event.latLng.lat(), event.latLng.lng());
+                    fetchSoilData(event.latLng.lat(), event.latLng.lng());
+                });
+
+                // Initialize form data
+                fetchCrops();
+                fetchSeasons();
+                fetchStates();
+
+            } catch (error) {
+                console.error("Error loading maps:", error);
+                document.getElementById("map").innerHTML = `
+                    <div class="alert alert-danger">
+                        Failed to load map. Please refresh the page.
+                    </div>
+                `;
+            }
+        };
+
+        // Modern marker placement
+        async function placeMarker(location) {
+            const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+            
+            if (marker) {
+                marker.map = null;
+            }
+            
+            marker = new AdvancedMarkerElement({
+                position: location,
+                map: map
+            });
+            
+            map.panTo(location);
+        }
+
+        // Updated location info handler
+        function updateLocationInfo(location) {
+            // Handle both LatLng object and plain coordinates
+            const lat = typeof location.lat === 'function' ? location.lat() : location.lat;
+            const lng = typeof location.lng === 'function' ? location.lng() : location.lng;
+            
+            selectedLat = lat;
+            selectedLng = lng;
+            
+            document.getElementById("coordinates").textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+            
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+                if (status === "OK" && results[0]) {
+                    document.getElementById("selected-location").textContent = results[0].formatted_address;
+                } else {
+                    document.getElementById("selected-location").textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                }
+            });
+        }
+
+        // Use my location with modern implementation
+        document.getElementById("use-my-location").addEventListener("click", async () => {
+            if (!navigator.geolocation) {
+                alert("Error: Your browser doesn't support geolocation.");
+                return;
+            }
+
+            document.getElementById("selected-location").textContent = "Detecting location...";
+            document.getElementById("coordinates").textContent = "";
+
+            try {
+                const position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    });
+                });
+
+                const pos = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+
+                if (!map) {
+                    console.error("Map not initialized");
+                    return;
+                }
+
+                map.setCenter(pos);
+                map.setZoom(15);
+                await placeMarker(pos);
+                updateLocationInfo(pos);
+                await fetchWeatherData(pos.lat, pos.lng);
+                await fetchSoilData(pos.lat, pos.lng);
+
+            } catch (error) {
+                let errorMessage = "Error getting location: ";
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMessage += "Permission denied";
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMessage += "Position unavailable";
+                        break;
+                    case error.TIMEOUT:
+                        errorMessage += "Request timed out";
+                        break;
+                    default:
+                        errorMessage += error.message;
+                }
+                alert(errorMessage);
+                document.getElementById("selected-location").textContent = "Not selected";
+            }
+        });
+    
+        
+        // Fetch crops from API
+        function fetchCrops() {
+            fetch('/api/crops')
+                .then(response => response.json())
+                .then(crops => {
+                    const cropSelect = document.getElementById('crop');
+                    crops.forEach(crop => {
+                        const option = document.createElement('option');
+                        option.value = crop;
+                        option.textContent = crop;
+                        cropSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error fetching crops:', error));
+        }
+        
+        // Fetch seasons from API
+        function fetchSeasons() {
+            fetch('/api/seasons')
+                .then(response => response.json())
+                .then(seasons => {
+                    const seasonSelect = document.getElementById('season');
+                    seasons.forEach(season => {
+                        const option = document.createElement('option');
+                        option.value = season;
+                        option.textContent = season;
+                        seasonSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error fetching seasons:', error));
+        }
+        
+        // Fetch states from API
+        function fetchStates() {
+            fetch('/api/states')
+                .then(response => response.json())
+                .then(states => {
+                    const stateSelect = document.getElementById('state');
+                    states.forEach(state => {
+                        const option = document.createElement('option');
+                        option.value = state;
+                        option.textContent = state;
+                        stateSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error fetching states:', error));
+        }
+        
+        // Fetch weather data
+        function fetchWeatherData(lat, lng) {
+            // In a real implementation, this would call a weather API
+            // For now, we'll simulate weather data
+            setTimeout(() => {
+                document.getElementById('temperature').textContent = (Math.random() * 15 + 20).toFixed(1);
+                document.getElementById('humidity').textContent = (Math.random() * 40 + 40).toFixed(0);
+                document.getElementById('rainfall').textContent = (Math.random() * 5).toFixed(1);
+                document.getElementById('wind-speed').textContent = (Math.random() * 20 + 5).toFixed(1);
+            }, 1000);
+        }
+        
+        // Fetch soil data
+        function fetchSoilData(lat, lng) {
+            document.querySelector('.soil-data-card').style.display = 'block';
+            
+            fetch('/api/soil', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ lat, lon: lng }),
+            })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('soil-ph').textContent = data.ph;
+                    document.getElementById('soil-n').textContent = data.n;
+                    document.getElementById('soil-p').textContent = data.p;
+                    document.getElementById('soil-k').textContent = data.k;
+                    document.getElementById('soil-oc').textContent = data.organic_carbon;
+                    
+                    // Also populate custom inputs
+                    document.getElementById('custom-ph').value = data.ph;
+                    document.getElementById('custom-n').value = data.n;
+                    document.getElementById('custom-p').value = data.p;
+                    document.getElementById('custom-k').value = data.k;
+                    document.getElementById('custom-oc').value = data.organic_carbon;
+                })
+                .catch(error => console.error('Error fetching soil data:', error));
+        }
+        
+        // Toggle custom soil inputs
+        document.getElementById('use-custom-soil').addEventListener('change', function() {
+            document.getElementById('custom-soil-inputs').style.display = this.checked ? 'block' : 'none';
+        });
+        
+        // Handle form submission
+        document.getElementById('prediction-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Check if location is selected
+            if (!selectedLat || !selectedLng) {
+                alert('Please select a location on the map first.');
+                return;
+            }
+            
+            // Show loader
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('result-card').style.display = 'none';
+            
+            // Get form values
+            const crop = document.getElementById('crop').value;
+            const season = document.getElementById('season').value;
+            const state = document.getElementById('state').value;
+            const area = document.getElementById('area').value;
+            const fertilizer = document.getElementById('fertilizer').value;
+            const pesticide = document.getElementById('pesticide').value;
+            
+            // Get soil data (either from API or custom inputs)
+            const useCustomSoil = document.getElementById('use-custom-soil').checked;
+            let soilData = {};
+            
+            if (useCustomSoil) {
+                soilData = {
+                    ph: document.getElementById('custom-ph').value,
+                    n: document.getElementById('custom-n').value,
+                    p: document.getElementById('custom-p').value,
+                    k: document.getElementById('custom-k').value,
+                    organic_carbon: document.getElementById('custom-oc').value
+                };
+            } else {
+                soilData = {
+                    ph: document.getElementById('soil-ph').textContent,
+                    n: document.getElementById('soil-n').textContent,
+                    p: document.getElementById('soil-p').textContent,
+                    k: document.getElementById('soil-k').textContent,
+                    organic_carbon: document.getElementById('soil-oc').textContent
+                };
+            }
+            
+            // Prepare data for API
+            const requestData = {
+                lat: selectedLat,
+                lon: selectedLng,
+                crop,
+                season,
+                state,
+                area,
+                fertilizer,
+                pesticide,
+                annual_rainfall: document.getElementById('rainfall').textContent,
+                ...soilData
+            };
+            
+            // Send prediction request
+            fetch('/api/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData),
+            })
+                .then(response => response.json())
+                .then(data => {
+                    // Hide loader
+                    document.getElementById('loader').style.display = 'none';
+                    
+                    if (data.success) {
+                        // Show results
+                        document.getElementById('result-card').style.display = 'block';
+                        document.getElementById('predicted-yield').textContent = data.yield.toFixed(2) + ' tonnes/ha';
+                        document.getElementById('estimated-production').textContent = data.estimated_production.toFixed(2) + ' tonnes';
+                        
+                        // Display recommendations
+                        const recommendationsList = document.getElementById('recommendations-list');
+                        recommendationsList.innerHTML = '';
+                        
+                        data.recommendations.forEach(recommendation => {
+                            const item = document.createElement('div');
+                            item.className = 'recommendation-item';
+                            item.innerHTML = `<i class="fas fa-check-circle me-2 text-success"></i>${recommendation}`;
+                            recommendationsList.appendChild(item);
+                        });
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('loader').style.display = 'none';
+                    console.error('Error making prediction:', error);
+                    alert('An error occurred while making the prediction. Please try again.');
+                });
+        });
+
+    document.addEventListener('DOMContentLoaded', loadGoogleMaps);
+    </script>
+</body>
+</html>

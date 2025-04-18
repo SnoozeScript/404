@@ -2,7 +2,7 @@
 Project For Prabal 2025
   cd backend /
   npm i 
-   uvicorn app.main:app --reload
+uvicorn app.main:app --reload
 
 
 

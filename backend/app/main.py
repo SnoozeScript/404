@@ -26,6 +26,8 @@ origins = [
     "http://localhost:5173", # Default Vite React dev server
     "http://localhost:3000", # Common React dev server port
     "http://127.0.0.1:5173",
+    "http://localhost:5182",
+    
     # Add other origins if needed (e.g., deployed frontend URL)
 ]
 

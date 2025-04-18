@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gemini AI Assistant</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5f7fa;
+      padding: 20px;
+      color: #333;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    #chatbox {
+      max-width: 700px;
+      margin: auto;
+      padding: 15px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+      max-height: 60vh;
+      overflow-y: auto;
+    }
+
+    .user, .ai, .error {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+      white-space: pre-wrap;
+    }
+
+    .user {
+      background: #e6f0ff;
+      align-self: flex-end;
+    }
+
+    .ai {
+      background: #f1f1f1;
+    }
+
+    .error {
+      background: #ffe6e6;
+      color: red;
+    }
+
+    #controls {
+      max-width: 700px;
+      margin: auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding-top: 15px;
+      align-items: center;
+    }
+
+    #userInput, #languageSelect {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    #sendBtn { background: #007bff; color: white; }
+    #resetBtn { background: #dc3545; color: white; }
+    #stopBtn { background: #ff9900; color: white; }
+    #micBtn { background: green; color: white; }
+  </style>
+</head>
+<body>
+  <h1>Gemini AI Assistant</h1>
+  <div id="chatbox"></div>
+
+  <div id="controls">
+    <select id="languageSelect">
+      <option value="en-US">English</option>
+      <option value="hi-IN" selected>Hindi</option>
+      <option value="mr-IN">Marathi</option>
+      <option value="ta-IN">Tamil</option>
+      <option value="te-IN">Telugu</option>
+      <option value="gu-IN">Gujarati</option>
+      <option value="kn-IN">Kannada</option>
+      <option value="ml-IN">Malayalam</option>
+      <option value="pa-IN">Punjabi</option>
+      <option value="bn-IN">Bengali</option>
+      <option value="ur-IN">Urdu</option>
+    </select>
+    <input type="text" id="userInput" placeholder="Type or speak your message..." />
+    <button id="micBtn" onclick="startSpeechInput()">🎤</button>
+    <button id="sendBtn" onclick="sendMessage()">Send</button>
+    <button id="stopBtn" onclick="stopSpeech()">Stop</button>
+    <button id="resetBtn" onclick="resetChat()">Reset</button>
+  </div>
+
+  <script>
+    const synth = window.speechSynthesis;
+
+    function stripMarkdown(text) {
+      return text.replace(/[*_`~]/g, '');
+    }
+
+    function speak(text, lang = 'en-US') {
+      stopSpeech();
+      const cleanText = stripMarkdown(text);
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.lang = lang;
+
+      const voices = synth.getVoices();
+      const voice = voices.find(v => v.lang === lang);
+      if (voice) utterance.voice = voice;
+
+      utterance.rate = 1.0;
+      synth.speak(utterance);
+    }
+
+    function stopSpeech() {
+      if (synth.speaking) synth.cancel();
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('userInput');
+      const message = input.value.trim();
+      const lang = document.getElementById('languageSelect').value;
+
+      if (!message) return;
+      addMessage(message, 'user');
+      input.value = '';
+
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ message })
+      });
+
+      const data = await res.json();
+      if (data.status === 'success') {
+        addMessage(data.response, 'ai');
+        speak(data.response, lang);
+      } else {
+        addMessage("Error: " + data.message, 'error');
+      }
+    }
+
+    function addMessage(text, sender) {
+      const chatbox = document.getElementById('chatbox');
+      const msg = document.createElement('div');
+      msg.className = sender;
+      msg.textContent = text;
+      chatbox.appendChild(msg);
+      chatbox.scrollTop = chatbox.scrollHeight;
+    }
+
+    async function resetChat() {
+      stopSpeech();
+      await fetch('/reset', { method: 'POST' });
+      document.getElementById('chatbox').innerHTML = '';
+    }
+
+    function startSpeechInput() {
+      const lang = document.getElementById("languageSelect").value;
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = lang;
+      recognition.interimResults = false;
+
+      recognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById('userInput').value = transcript;
+        sendMessage();
+      };
+
+      recognition.onerror = function(e) {
+        alert('Speech recognition error: ' + e.error);
+      };
+
+      recognition.start();
+    }
+
+    window.speechSynthesis.onvoiceschanged = () => {};
+  </script>
+</body>
+</html>

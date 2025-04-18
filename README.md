@@ -11,3 +11,4 @@ uvicorn app.main:app --reload
    npm i 
    npm run dev
   
+pip 

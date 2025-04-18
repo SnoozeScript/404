@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { getMarketPricesApi, getMarketSummaryApi, getMarketTrendsApi } from '../../services/api';
 
 const API_BASE = "http://localhost:8000/api/v1"; // Updated to use the versioned API path
 
@@ -17,17 +18,11 @@ const MarketView = () => {
       setLoading(true);
       try {
         // Fetch market prices from our enhanced API
-        const pricesRes = await fetch(`${API_BASE}/market/prices`);
-        if (!pricesRes.ok) throw new Error(`API error: ${pricesRes.status}`);
-        
-        const pricesJson = await pricesRes.json();
+        const pricesJson = await getMarketPricesApi();
         setMarketData(pricesJson.market_data || []);
         
         // Fetch AI-generated market summary
-        const summaryRes = await fetch(`${API_BASE}/market/summary`);
-        if (!summaryRes.ok) throw new Error(`API error: ${summaryRes.status}`);
-        
-        const summaryJson = await summaryRes.json();
+        const summaryJson = await getMarketSummaryApi();
         setSummary(summaryJson.summary || "");
         
         setError("");
@@ -48,13 +43,9 @@ const MarketView = () => {
     setSelectedCrop(crop);
     
     try {
-      const response = await fetch(`${API_BASE}/market/trends/${crop}`);
-      if (!response.ok) throw new Error(`API error: ${response.status}`);
-      
-      const data = await response.json();
+      const data = await getMarketTrendsApi(crop); // Use the imported getMarketTrendsApi function
       setTrendData(data.trend || "No trend data available");
     } catch (err) {
-      console.error("Trend data fetch error:", err);
       setTrendData(`Could not fetch trend data: ${err.message}`);
     }
     

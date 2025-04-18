@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { predictYieldApi } from '../../services/api';
 
 const API_BASE = "http://localhost:8000";
 
@@ -24,25 +25,20 @@ const YieldPredictor = () => {
     setPrediction("");
     setError("");
     try {
-      const res = await fetch(`${API_BASE}/predict`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          crop_type: form.crop_type,
-          area: form.area,
-          region: form.region,
-          soil: form.soil || undefined,
-          weather: form.weather || undefined,
-        }),
+      const data = await predictYieldApi({
+        crop_type: form.crop_type,
+        area: form.area,
+        region: form.region,
+        soil: form.soil || undefined,
+        weather: form.weather || undefined,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Prediction failed.");
       setPrediction(data.prediction_text);
     } catch (err) {
       setError(err.message);
     }
     setLoading(false);
   };
+
 
   return (
     <div className="max-w-xl mx-auto p-6 bg-white rounded-lg shadow mt-8">

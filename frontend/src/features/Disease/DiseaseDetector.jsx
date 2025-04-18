@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { detectDiseaseApi } from '../../services/api';
 
 const API_BASE = "http://localhost:8000/api/v1";
 
@@ -23,23 +24,16 @@ const DiseaseDetector = () => {
     setLoading(true);
     setResult("");
     setError("");
-    const formData = new FormData();
-    formData.append("file", image);
-
     try {
-      const res = await fetch(`${API_BASE}/disease/detect`, {
-        method: "POST",
-        body: formData,
-      });
-      if (!res.ok) throw new Error("Detection failed.");
-      const data = await res.json();
-      setResult(data.result || "No result from AI.");
+      const data = await detectDiseaseApi(image);
+      setResult(data.analysis || "No result from AI.");
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-100">

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { processVoiceCommandApi } from '../../services/api';
 import { FaMicrophone, FaSpinner, FaPaperPlane } from "react-icons/fa";
 import { MdVoiceChat, MdTranslate } from "react-icons/md";
 
@@ -18,20 +19,15 @@ const VoiceControl = () => {
     setResponse("");
 
     try {
-      const res = await fetch(`${API_BASE}/voice/command`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transcript, language }),
-      });
-      if (!res.ok) throw new Error("Voice command failed");
-      const data = await res.json();
-      setResponse(data.response || "No response from AI.");
+      const data = await processVoiceCommandApi({ transcript, language });
+      setResponse(data.response_text || "No response from AI.");
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 pt-24 pb-12 px-4 flex items-center justify-center">

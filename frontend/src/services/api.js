@@ -49,7 +49,122 @@ export const detectDiseaseApi = async (imageFile) => {
   }
 };
 
-// Add other API functions here later...
-// export const predictYieldApi = async (yieldData) => { ... };
-// export const getMarketPricesApi = async () => { ... };
-// export const processVoiceCommandApi = async (commandData) => { ... };
+/**
+ * Yield Prediction API
+ * @param {object} yieldData { crop_type, area, region, soil, weather }
+ * @returns {Promise<object>} Backend response
+ */
+export const predictYieldApi = async (yieldData) => {
+  try {
+    const response = await apiClient.post('/predict', yieldData);
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      throw new Error(error.response.data.detail || `Server error: ${error.response.status}`);
+    } else if (error.request) {
+      throw new Error('No response received from server. Please check your network connection or if the backend is running.');
+    } else {
+      throw new Error(`Error sending request: ${error.message}`);
+    }
+  }
+};
+
+/**
+ * Get Market Prices
+ * @returns {Promise<object>} Backend response
+ */
+export const getMarketPricesApi = async () => {
+  try {
+    const response = await apiClient.get('/market/prices');
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      throw new Error(error.response.data.detail || `Server error: ${error.response.status}`);
+    } else if (error.request) {
+      throw new Error('No response received from server. Please check your network connection or if the backend is running.');
+    } else {
+      throw new Error(`Error sending request: ${error.message}`);
+    }
+  }
+};
+
+/**
+ * Get Market Summary
+ * @returns {Promise<object>} Backend response
+ */
+export const getMarketSummaryApi = async () => {
+  try {
+    const response = await apiClient.get('/market/summary');
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      throw new Error(error.response.data.detail || `Server error: ${error.response.status}`);
+    } else if (error.request) {
+      throw new Error('No response received from server. Please check your network connection or if the backend is running.');
+    } else {
+      throw new Error(`Error sending request: ${error.message}`);
+    }
+  }
+};
+
+/**
+ * Get Market Trends for a Crop
+ * @param {string} crop Crop name
+ * @returns {Promise<object>} Backend response
+ */
+export const getMarketTrendsApi = async (crop) => {
+  try {
+    const response = await apiClient.get(`/market/trends/${encodeURIComponent(crop)}`);
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      throw new Error(error.response.data.detail || `Server error: ${error.response.status}`);
+    } else if (error.request) {
+      throw new Error('No response received from server. Please check your network connection or if the backend is running.');
+    } else {
+      throw new Error(`Error sending request: ${error.message}`);
+    }
+  }
+};
+
+/**
+ * Voice Command API
+ * @param {object} commandData { transcript, language }
+ * @returns {Promise<object>} Backend response
+ */
+export const processVoiceCommandApi = async (commandData) => {
+  try {
+    const response = await apiClient.post('/voice/command', commandData);
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      throw new Error(error.response.data.detail || `Server error: ${error.response.status}`);
+    } else if (error.request) {
+      throw new Error('No response received from server. Please check your network connection or if the backend is running.');
+    } else {
+      throw new Error(`Error sending request: ${error.message}`);
+    }
+  }
+};
+
+/**
+ * Chat Assistant API (non-streaming)
+ * @param {object} chatData { message, history }
+ * @returns {Promise<object>} Backend response
+ */
+export const chatAssistantApi = async (chatData) => {
+  try {
+    const response = await apiClient.post('/chat/message', chatData);
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      throw new Error(error.response.data.detail || `Server error: ${error.response.status}`);
+    } else if (error.request) {
+      throw new Error('No response received from server. Please check your network connection or if the backend is running.');
+    } else {
+      throw new Error(`Error sending request: ${error.message}`);
+    }
+  }
+};
+
+// For streaming chat, use fetch directly in the component for fine-grained control.

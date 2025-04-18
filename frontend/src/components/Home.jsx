@@ -99,12 +99,26 @@ const Home = () => {
       .then((response) => response.json())
       .then((data) => setAnimationData(data))
       .catch((error) => console.error("Error loading animation:", error));
+
+    // Add this to fix any default body/html margins
+    document.body.style.margin = "0";
+    document.body.style.padding = "0";
+    document.documentElement.style.margin = "0";
+    document.documentElement.style.padding = "0";
+
+    return () => {
+      // Clean up when component unmounts
+      document.body.style.margin = "";
+      document.body.style.padding = "";
+      document.documentElement.style.margin = "";
+      document.documentElement.style.padding = "";
+    };
   }, []);
 
   return (
     <div className="font-sans text-gray-800">
-      {/* Hero Section */}
-      <header className="bg-gradient-to-r from-green-900 via-green-800 to-green-900 pt-20 pb-20 px-2 sm:px-3 lg:px-4 text-white relative overflow-hidden">
+      {/* Hero Section - Full height for mobile and properly centered for desktop */}
+      <header className="bg-gradient-to-r from-green-900 via-green-800 to-green-900 text-white relative min-h-screen pt-16 sm:pt-20 flex items-center">
         {/* Professional subtle background pattern */}
         <div className="absolute inset-0 opacity-10">
           <svg
@@ -150,7 +164,8 @@ const Home = () => {
           ))}
         </div>
 
-        <div className="max-w-7xl mx-auto relative px-1">
+        {/* Main container with proper centering for desktop and no gaps for mobile */}
+        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-12">
           <div className="flex flex-col lg:flex-row items-center justify-between">
             <div className="lg:w-1/2 mb-12 lg:mb-0 pr-0 lg:pr-12">
               <FadeInSection>
@@ -210,7 +225,7 @@ const Home = () => {
                 </div>
               </FadeInSection>
             </div>
-            <div className="lg:w-1/3 flex justify-center">
+            <div className="lg:w-1/2 flex justify-center">
               <FadeInSection delay={300}>
                 <div className="relative">
                   {/* Background decorative elements */}
@@ -239,7 +254,6 @@ const Home = () => {
           </div>
         </div>
       </header>
-
       {/* Features Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
@@ -312,7 +326,6 @@ const Home = () => {
           </div>
         </div>
       </section>
-
       {/* How It Works */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-green-100">
         <div className="max-w-7xl mx-auto">
@@ -520,7 +533,6 @@ const Home = () => {
           </div>
         </FadeInSection>
       </section>
-
       {/* Footer */}
       <footer className="bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">

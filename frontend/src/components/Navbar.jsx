@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { GiFarmTractor } from "react-icons/gi";
-import { FaWarehouse, FaLeaf, FaCloudSun, FaUser } from "react-icons/fa";
+import { FaWarehouse, FaLeaf, FaCloudSun, FaUser, FaRobot } from "react-icons/fa";
 import { MdVoiceChat } from "react-icons/md";
 import { BsFillBarChartFill } from "react-icons/bs";
 
@@ -112,6 +112,14 @@ const Navbar = () => {
                 to="/yield"
                 label="Yield Predictor"
                 icon={<BsFillBarChartFill />}
+                currentPath={location.pathname}
+                previousPath={previousPath}
+                isTransitioning={isTransitioning}
+              />
+              <NavLink
+                to="/chat"
+                label="AI Chat"
+                icon={<FaRobot />}
                 currentPath={location.pathname}
                 previousPath={previousPath}
                 isTransitioning={isTransitioning}

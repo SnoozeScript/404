@@ -12,6 +12,7 @@ import MarketView from "./features/market/MarketView";
 import DiseaseDetector from "./features/Disease/DiseaseDetector";
 import VoiceControl from "./features/voice/VoiceControl";
 import YieldPredictor from "./features/yield/YieldPredictor";
+import ChatAssistant from "./features/chat/ChatAssistant";
 import Navbar from "./components/Navbar";
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
         <Route path="/disease" element={<DiseaseDetector />} />
         <Route path="/voice" element={<VoiceControl />} />
         <Route path="/yield" element={<YieldPredictor />} />
+        <Route path="/chat" element={<ChatAssistant />} />
       </Routes>
     </Router>
   );

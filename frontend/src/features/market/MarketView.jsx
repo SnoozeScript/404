@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-const API_BASE = "http://localhost:8000"; // Adjust if your backend runs elsewhere
+const API_BASE = "http://localhost:8000/api/v1"; // Updated to use the versioned API path
 
 const MarketView = () => {
   const [marketData, setMarketData] = useState([]);
@@ -8,25 +8,58 @@ const MarketView = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [selectedCrop, setSelectedCrop] = useState("");
+  const [isFetchingCrop, setIsFetchingCrop] = useState(false);
+  const [trendData, setTrendData] = useState("");
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const pricesRes = await fetch(`${API_BASE}/prices`);
+        // Fetch market prices from our enhanced API
+        const pricesRes = await fetch(`${API_BASE}/market/prices`);
+        if (!pricesRes.ok) throw new Error(`API error: ${pricesRes.status}`);
+        
         const pricesJson = await pricesRes.json();
         setMarketData(pricesJson.market_data || []);
-        const summaryRes = await fetch(`${API_BASE}/summary`);
+        
+        // Fetch AI-generated market summary
+        const summaryRes = await fetch(`${API_BASE}/market/summary`);
+        if (!summaryRes.ok) throw new Error(`API error: ${summaryRes.status}`);
+        
         const summaryJson = await summaryRes.json();
         setSummary(summaryJson.summary || "");
+        
         setError("");
-        // eslint-disable-next-line no-unused-vars
       } catch (err) {
-        setError("Failed to load market data.");
+        console.error("Market data fetch error:", err);
+        setError(`Failed to load market data: ${err.message}`);
       }
       setLoading(false);
     };
     fetchData();
   }, []);
+  
+  // Handler for fetching trends for a specific crop
+  const fetchTrendData = async (crop) => {
+    if (!crop) return;
+    
+    setIsFetchingCrop(true);
+    setSelectedCrop(crop);
+    
+    try {
+      const response = await fetch(`${API_BASE}/market/trends/${crop}`);
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
+      
+      const data = await response.json();
+      setTrendData(data.trend || "No trend data available");
+    } catch (err) {
+      console.error("Trend data fetch error:", err);
+      setTrendData(`Could not fetch trend data: ${err.message}`);
+    }
+    
+    setIsFetchingCrop(false);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white pt-24 px-4 pb-16">
@@ -146,6 +179,95 @@ const MarketView = () => {
                     </h3>
                     <div className="text-gray-700 whitespace-pre-line bg-white p-4 rounded-lg border border-green-100 shadow-sm">
                       {summary}
+                    </div>
+                  </div>
+                  
+                  {/* Crop Selection for Trends */}
+                  <div className="mt-8 p-6 bg-white rounded-lg border border-green-100 shadow">
+                    <h3 className="font-bold text-lg text-green-800 mb-4 flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                      </svg>
+                      Market Trends Analysis
+                    </h3>
+                    
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {['wheat', 'onion', 'soybean', 'sugarcane'].map(crop => (
+                        <button
+                          key={crop}
+                          onClick={() => fetchTrendData(crop)}
+                          className={`px-4 py-2 rounded-full text-sm font-medium transition-all
+                            ${selectedCrop === crop 
+                              ? 'bg-green-600 text-white' 
+                              : 'bg-green-100 text-green-800 hover:bg-green-200'}
+                          `}
+                        >
+                          {crop.charAt(0).toUpperCase() + crop.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                    
+                    {selectedCrop && (
+                      <div className="bg-green-50 p-4 rounded-lg border border-green-100">
+                        <h4 className="font-semibold text-green-800 mb-2">
+                          {selectedCrop.charAt(0).toUpperCase() + selectedCrop.slice(1)} Trends
+                        </h4>
+                        
+                        {isFetchingCrop ? (
+                          <div className="flex items-center justify-center p-4">
+                            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-green-700"></div>
+                          </div>
+                        ) : (
+                          <p className="text-gray-700">{trendData}</p>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Listing Form */}
+                    <div className="mt-6 pt-6 border-t border-green-100">
+                      <h4 className="font-semibold text-green-800 mb-4">Create Listing for Your Crops</h4>
+                      <p className="text-sm text-gray-600 mb-4">
+                        List your crops for potential buyers to see. Other farmers can contact you directly.
+                      </p>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Crop Type</label>
+                          <input
+                            type="text"
+                            className="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                            placeholder="e.g., Wheat, Onion"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                          <input
+                            type="text"
+                            className="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                            placeholder="e.g., 10 quintals"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Expected Price (₹)</label>
+                          <input
+                            type="number"
+                            className="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                            placeholder="Price per quintal"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Contact Number</label>
+                          <input
+                            type="tel"
+                            className="w-full p-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                            placeholder="Your phone number"
+                          />
+                        </div>
+                      </div>
+                      
+                      <button className="mt-4 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors">
+                        Submit Listing
+                      </button>
                     </div>
                   </div>
                 </>

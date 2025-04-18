@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 # Ensure the imported module names match the filenames
-from app.api.endpoints import disease, yield_endpoint, market, voice
+from app.api.endpoints import disease, yield_endpoint, market, voice, chat
 
 api_router = APIRouter()
 
@@ -10,6 +10,7 @@ api_router.include_router(disease.router, prefix="/disease", tags=["Disease Dete
 api_router.include_router(yield_endpoint.router, prefix="/yield", tags=["Yield Prediction"])
 api_router.include_router(market.router, prefix="/market", tags=["Market Access"])
 api_router.include_router(voice.router, prefix="/voice", tags=["Voice Interaction"])
+api_router.include_router(chat.router, prefix="/chat", tags=["AI Chat Assistant"])
 
 # Health check endpoint remains useful
 @api_router.get("/health", tags=["Health Check"])

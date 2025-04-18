@@ -1,6 +1,12 @@
 from fastapi import FastAPI
 from app.api.api import api_router # Import the main router
 from app.core.config import get_settings
+import asyncio
+
+# Import multi-agent system
+from app.core.multi_agent import coordinator, context_protocol
+from app.core.agents import init_agents
+from app.core.chat_agent import init_chat_agent
 
 # --- CORS ---
 # Allow frontend to call backend (important for development)
@@ -58,6 +64,25 @@ async def startup_event():
     if not settings.GROQ_API_KEY or settings.GROQ_API_KEY == "YOUR_GROQ_API_KEY_NOT_SET":
         print("STARTUP WARNING: Groq API key is not configured!")
     print(f"CORS allowed origins: {origins}")
+    
+    # Initialize the multi-agent system
+    print("Initializing multi-agent system...")
+    coord = init_agents()
+    await coord.start()
+    
+    # Initialize the chat agent
+    print("Initializing AI chat assistant...")
+    chat_agent = init_chat_agent()
+    print("AI chat assistant initialized")
+    
+    print("Multi-agent system initialized")
+    
+    # Set up global context with supported languages
+    context_protocol.set_context("supported_languages", {
+        "en": "English",
+        "hi": "Hindi",
+        "mr": "Marathi"
+    })
 
 # @app.on_event("shutdown")
 # async def shutdown_event():

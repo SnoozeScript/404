@@ -1,51 +1,147 @@
-from fastapi import APIRouter, HTTPException
-from app.core.ai_services import get_market_summary_ai # Import the new function
+from fastapi import APIRouter, HTTPException, Depends
+from app.core.ai_services import get_market_summary_ai
+from app.services.market_scraper import get_all_prices, get_scraper
+from app.core.multi_agent import AgentType, Message, coordinator, context_protocol
+import uuid
+from pydantic import BaseModel
+from typing import Optional, List, Dict, Any
 
 router = APIRouter()
 
-# Using a simple in-memory list for mock data during the hackathon
-# In a real app, this would come from a database or external source
-mock_market_data = [
-    {"id": 1, "crop": "Wheat (Gehu)", "price_per_quintal": 2350, "location": "Baramati Mandi", "date": "2025-04-17"},
-    {"id": 2, "crop": "Onion (Kanda)", "price_per_quintal": 1400, "location": "Baramati Mandi", "date": "2025-04-17"},
-    {"id": 3, "crop": "Soybean", "price_per_quintal": 4500, "location": "Baramati Mandi", "date": "2025-04-17"},
-    {"id": 4, "crop": "Sugarcane (Oos)", "price_per_tonne": 3150, "location": "Factory Gate Rate (Approx)", "date": "2025-04-18"},
-]
+# Pydantic model for market listings
+class MarketListing(BaseModel):
+    crop: str
+    quantity: str  # e.g., "10 quintals"
+    price_expected: int
+    contact: str
+    location: Optional[str] = "Baramati"
+    notes: Optional[str] = None
 
 @router.get("/prices", status_code=200)
-async def get_market_prices():
-    """Returns mock market prices for common crops in Baramati."""
-    return {"market_data": mock_market_data}
+async def get_market_prices(crop: Optional[str] = None, location: Optional[str] = None):
+    """Returns market prices from scraped sources for crops in specified locations."""
+    try:
+        # Create a session ID for context tracking
+        session_id = str(uuid.uuid4())
+        
+        # Set up request context
+        context_protocol.set_context(session_id, {
+            "request_type": "market_prices",
+            "crop": crop,
+            "location": location or "Baramati"
+        })
+        
+        # Send message to market agent
+        message = await coordinator.route_message(
+            Message(
+                sender=AgentType.COORDINATOR,
+                receiver=AgentType.MARKET_ANALYZER,
+                content={
+                    "crop": crop,
+                    "location": location or "Baramati",
+                    "force_refresh": True  # Always get fresh data for API calls
+                },
+                message_type="get_prices",
+                context={"session_id": session_id}
+            )
+        )
+        
+        if not message or "error" in message.content:
+            error = message.content.get("error", "Unknown error fetching prices") if message else "No response from market agent"
+            raise HTTPException(status_code=500, detail=error)
+            
+        return {"market_data": message.content.get("prices", [])}
+        
+    except Exception as e:
+        print(f"Error fetching market prices: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/summary", status_code=200)
 async def get_market_summary():
-    """Generates a brief AI summary of the current mock market data."""
+    """Generates a brief AI summary of current market data using multi-agent system."""
     try:
-        summary = await get_market_summary_ai(mock_market_data)
-        if summary.startswith("Error:"):
-            raise HTTPException(status_code=503, detail=summary)
-        return {"summary": summary}
+        # Create a session ID for context tracking
+        session_id = str(uuid.uuid4())
+        context_protocol.set_context(session_id, {"request_type": "market_summary"})
+        
+        # Send message to market agent
+        message = await coordinator.route_message(
+            Message(
+                sender=AgentType.COORDINATOR,
+                receiver=AgentType.MARKET_ANALYZER,
+                content={},
+                message_type="get_summary",
+                context={"session_id": session_id}
+            )
+        )
+        
+        if not message or "error" in message.content:
+            error = message.content.get("error", "Unknown error generating summary") if message else "No response from market agent"
+            raise HTTPException(status_code=500, detail=error)
+            
+        return {"summary": message.content.get("summary", "No market summary available")}
+        
     except Exception as e:
         print(f"Error getting market summary: {e}")
-        raise HTTPException(status_code=500, detail="Could not generate market summary.")
+        raise HTTPException(status_code=500, detail=f"Could not generate market summary: {str(e)}")
 
+@router.post("/listings", status_code=201)
+async def add_market_listing(listing: MarketListing):
+    """Allows farmers to create market listings for their crops."""
+    try:
+        # Create a unique ID for the listing
+        new_id = str(uuid.uuid4())[:8]  # Use first 8 chars of UUID for readability
+        
+        # Create a session ID for context tracking
+        session_id = str(uuid.uuid4())
+        
+        # Store the listing in context for now (in production, this would go to a database)
+        listing_dict = listing.dict()
+        listing_dict["id"] = new_id
+        listing_dict["type"] = "User Listing"  # Differentiate from mandi prices
+        
+        # Store in context (in memory)
+        context_protocol.set_context(f"listing_{new_id}", listing_dict)
+        
+        # In production, we could analyze the listing using the market agent
+        # For example, we could check if the price is reasonable compared to market rates
+        
+        print(f"Received listing: {listing_dict}")
+        return {
+            "message": "Listing created successfully",
+            "listing_id": new_id,
+            "details": listing_dict
+        }
+        
+    except Exception as e:
+        print(f"Error creating market listing: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-# --- Placeholder for adding listings (Not fully implemented) ---
-# from pydantic import BaseModel
-# class MarketListing(BaseModel):
-#     crop: str
-#     quantity: str # e.g., "10 quintals"
-#     price_expected: int
-#     contact: str
-
-# @router.post("/listings", status_code=201)
-# async def add_market_listing(listing: MarketListing):
-#     """Allows adding a mock listing (stores in memory for demo)."""
-#     new_id = max([item.get('id', 0) for item in mock_market_data] + [0]) + 1
-#     listing_dict = listing.dict()
-#     listing_dict["id"] = new_id
-#     listing_dict["type"] = "User Listing" # Differentiate from mandi prices
-#     # In a real app, save to DB. Here, just add to list (won't persist server restarts)
-#     # mock_market_data.append(listing_dict)
-#     print(f"Received listing (not saved): {listing_dict}")
-#     return {"message": "Listing received (demo only, not saved)", "listing_id": new_id}
+@router.get("/trends/{crop}", status_code=200)
+async def get_market_trends(crop: str):
+    """Analyze market trends for a specific crop."""
+    try:
+        # Create a session ID for context tracking
+        session_id = str(uuid.uuid4())
+        context_protocol.set_context(session_id, {"request_type": "market_trends", "crop": crop})
+        
+        # Send message to market agent
+        message = await coordinator.route_message(
+            Message(
+                sender=AgentType.COORDINATOR,
+                receiver=AgentType.MARKET_ANALYZER,
+                content={"crop": crop},
+                message_type="analyze_trends",
+                context={"session_id": session_id}
+            )
+        )
+        
+        if not message or "error" in message.content:
+            error = message.content.get("error", "Unknown error analyzing trends") if message else "No response from market agent"
+            raise HTTPException(status_code=500, detail=error)
+            
+        return {"trend": message.content.get("message", "No trend data available")}
+        
+    except Exception as e:
+        print(f"Error analyzing market trends: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

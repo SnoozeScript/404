@@ -139,7 +139,7 @@ def predict_yield(model, input_data, preprocessor, categorical_cols, numerical_c
 # Main function to train and save the model
 def main():
     # URL to the dataset
-    dataset_url = r"C:\Users\Me\Downloads\dataset_crop_yield\final_crop_yield_dataset.csv"
+    dataset_url = r"final_crop_yield_dataset.csv"
     
     # Load and preprocess the data
     df = load_and_preprocess_data(dataset_url)

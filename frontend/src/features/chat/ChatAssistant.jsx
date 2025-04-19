@@ -167,65 +167,31 @@ function ChatAssistant() {
         method: 'POST',
         body: formData
       });
-      if (!response.ok) throw new Error('Speech chat failed.');
-      const data = await response.json();
-      // Instead of sending, set transcript to input box for user review
-      setInput(data.user_transcript);
-      if (sttMode === 'upload' && ttsEnabled && data.ai_response) {
-        speakText(data.ai_response);
+      let data;
+      try {
+        data = await response.json();
+      } catch (err) {
+        setError("Speech chat: Invalid server response (not JSON). Check backend.");
+        console.error("Speech chat: Invalid JSON response", err);
+        return;
       }
-      // Optionally, you can auto-focus the input box here if desired
-      // The user will now review/edit and press Send to trigger AI response
-      // (Do not send to AI or update messages here)
+      console.log("Speech chat backend response:", data);
+      if (!response.ok) {
+        setError(`Speech chat failed: ${data?.detail || response.statusText}`);
+        return;
+      }
+      if (!data.user_transcript) {
+        setError("Speech chat: No transcript returned from backend. Check backend implementation.");
+        return;
+      }
+      setInput(data.user_transcript);
+      setSpeechCaptured(true);
+      setTimeout(() => inputRef.current?.focus(), 100);
+      // DO NOT send to AI automatically; user must review and click Send
     } catch {
       setError("Failed to get audio reply from AI.");
     } finally {
       setLoading(false);
-    }
-  };
-
-  // TTS: Speak text using browser API
-  function speakText(text) {
-    if (!synth || !ttsEnabled) return;
-    synth.cancel(); // stop any previous
-    const utter = new window.SpeechSynthesisUtterance(text);
-    utter.lang = selectedLanguage === 'en' ? 'en-US' : selectedLanguage;
-    utter.rate = 1.05;
-    synth.speak(utter);
-  }
-
-  // STT: Start browser speech recognition
-  const handleStartRecognition = () => {
-    if (!SpeechRecognition) return;
-    setRecognitionActive(true);
-    const recognition = new SpeechRecognition();
-    recognition.lang = selectedLanguage === 'en' ? 'en-US' : selectedLanguage;
-    recognition.interimResults = true;
-    recognition.continuous = false;
-    recognitionRef.current = recognition;
-    recognition.onresult = (event) => {
-      let transcript = '';
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        transcript += event.results[i][0].transcript;
-      }
-      setInput(transcript);
-      if (event.results[event.results.length - 1].isFinal) {
-        setRecognitionActive(false);
-        recognition.stop();
-        // Optionally auto-send:
-        // handleSend({ preventDefault: () => {} });
-      }
-    };
-    recognition.onerror = () => setRecognitionActive(false);
-    recognition.onend = () => setRecognitionActive(false);
-    recognition.start();
-  };
-
-  // STT: Stop browser speech recognition
-  const handleStopRecognition = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      setRecognitionActive(false);
     }
   };
 
@@ -246,6 +212,8 @@ function ChatAssistant() {
   }
 
   const [input, setInput] = useState("");
+  const [speechCaptured, setSpeechCaptured] = useState(false);
+  const inputRef = useRef(null);
   const [messages, setMessages] = useState([
     {
       role: "assistant",
@@ -284,13 +252,60 @@ function ChatAssistant() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = async (e) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-    if (recognitionActive && recognitionRef.current) {
+  // TTS: Speak text using browser API
+  function speakText(text) {
+    if (!synth || !ttsEnabled) return;
+    synth.cancel(); // stop any previous
+    const utter = new window.SpeechSynthesisUtterance(text);
+    utter.lang = selectedLanguage === 'en' ? 'en-US' : selectedLanguage;
+    utter.rate = 1.05;
+    synth.speak(utter);
+  }
+
+  // STT: Start browser speech recognition
+  const handleStartRecognition = () => {
+    if (!SpeechRecognition) return;
+    setRecognitionActive(true);
+    const recognition = new SpeechRecognition();
+    recognition.lang = selectedLanguage === 'en' ? 'en-US' : selectedLanguage;
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    recognitionRef.current = recognition;
+    recognition.onresult = (event) => {
+      let transcript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        transcript += event.results[i][0].transcript;
+      }
+      setInput(transcript);
+      setSpeechCaptured(true);
+      setTimeout(() => inputRef.current?.focus(), 100);
+      // Ensure input is updated even if interim results (for live STT)
+      if (!event.results[event.results.length - 1].isFinal) {
+        inputRef.current?.focus();
+      }
+      if (event.results[event.results.length - 1].isFinal) {
+        setRecognitionActive(false);
+        recognition.stop();
+        // Optionally auto-send:
+        // handleSend({ preventDefault: () => {} });
+      }
+    };
+    recognition.onerror = () => setRecognitionActive(false);
+    recognition.onend = () => setRecognitionActive(false);
+    recognition.start();
+  };
+
+  // STT: Stop browser speech recognition
+  const handleStopRecognition = () => {
+    if (recognitionRef.current) {
       recognitionRef.current.stop();
       setRecognitionActive(false);
     }
+  };
+
+  const handleSend = async (e) => {
+    e.preventDefault();
+    if (!input.trim()) return;
     
     setError("");
     setLoading(true);
@@ -298,6 +313,7 @@ function ChatAssistant() {
     const newMessages = [...messages, { role: "user", content: input }];
     setMessages(newMessages);
     setInput("");
+    setSpeechCaptured(false);
     
     try {
       // Use multilingual API if a non-English language is selected, otherwise use regular chat API
@@ -685,37 +701,64 @@ function ChatAssistant() {
 
             {/* Input Area */}
              <div className="chat-footer flex items-center gap-3 bg-white/90 rounded-xl shadow-md px-4 py-3 mt-3 sticky bottom-0 z-20">
-               {/* TTS Toggle */}
-               <button
-                 className={`px-2 py-1 rounded-full border text-xs font-semibold mr-2 ${ttsEnabled ? 'bg-green-200 border-green-400 text-green-700' : 'bg-gray-100 border-gray-300 text-gray-500'}`}
-                 onClick={() => setTtsEnabled(v => !v)}
-                 title={ttsEnabled ? 'Voice answers ON' : 'Voice answers OFF'}
-                 aria-label="Toggle voice answers"
-               >
-                 {ttsEnabled ? '🔊 Voice ON' : '🔇 Voice OFF'}
-               </button>
-               {/* STT Mode Toggle (if browser supports) */}
-               {SpeechRecognition && (
-                 <button
-                   className={`px-2 py-1 rounded-full border text-xs font-semibold mr-2 ${sttMode === 'browser' ? 'bg-blue-200 border-blue-400 text-blue-700' : 'bg-gray-100 border-gray-300 text-gray-500'}`}
-                   onClick={() => setSttMode(m => m === 'browser' ? 'upload' : 'browser')}
-                   title={sttMode === 'browser' ? 'Speech-to-text: Live' : 'Speech-to-text: Upload'}
-                   aria-label="Toggle speech-to-text mode"
-                 >
-                   {sttMode === 'browser' ? '🎙️ Live STT' : '⬆️ Upload STT'}
-                 </button>
-               )}
-
+                {/* TTS Toggle */}
+              <button
+                className={`px-2 py-1 rounded-full border text-xs font-semibold mr-2 ${ttsEnabled ? 'bg-green-200 border-green-400 text-green-700' : 'bg-gray-100 border-gray-300 text-gray-500'}`}
+                onClick={() => setTtsEnabled(v => !v)}
+                title={ttsEnabled ? 'Voice answers ON' : 'Voice answers OFF'}
+                aria-label="Toggle voice answers"
+              >
+                {ttsEnabled ? '🔊 Voice ON' : '🔇 Voice OFF'}
+              </button>
+              {/* STT Input button (always shown, triggers correct mode) */}
+              <button
+                className={`px-2 py-1 rounded-full border text-xs font-semibold mr-2 ${recognitionActive || recording ? 'bg-blue-200 border-blue-400 text-blue-700 animate-pulse' : 'bg-blue-50 border-blue-200 text-blue-700'}`}
+                onClick={() => {
+                  if (sttMode === 'browser' && SpeechRecognition) {
+                    if (!recognitionActive) handleStartRecognition();
+                    else handleStopRecognition();
+                  } else {
+                    if (!recording) handleStartRecording();
+                    else handleStopRecording();
+                  }
+                }}
+                disabled={loading}
+                aria-label={sttMode === 'browser' ? (recognitionActive ? 'Stop speech recognition' : 'Start speech recognition') : (recording ? 'Stop recording' : 'Start recording')}
+                title={sttMode === 'browser' ? 'STT Input (Live)' : 'STT Input (Upload)'}
+              >
+                {sttMode === 'browser' ? (recognitionActive ? '🛑 Stop STT' : '🎤 STT Input') : (recording ? '🛑 Stop STT' : '🎤 STT Input')}
+              </button>
+              {/* STT Mode Toggle (if browser supports) */}
+              {SpeechRecognition && (
+                <button
+                  className={`px-2 py-1 rounded-full border text-xs font-semibold mr-2 ${sttMode === 'browser' ? 'bg-blue-200 border-blue-400 text-blue-700' : 'bg-gray-100 border-gray-300 text-gray-500'}`}
+                  onClick={() => setSttMode(m => m === 'browser' ? 'upload' : 'browser')}
+                  title={sttMode === 'browser' ? 'Speech-to-text: Live' : 'Speech-to-text: Upload'}
+                  aria-label="Toggle speech-to-text mode"
+                >
+                  {sttMode === 'browser' ? '🎙️ Live STT' : '⬆️ Upload STT'}
+                </button>
+              )}
               <input
+                ref={inputRef}
                 type="text"
-                className="input-box flex-1 px-4 py-2 rounded-lg border border-green-200 focus:border-green-400 focus:ring-2 focus:ring-green-100 text-base"
+                className={`input-box flex-1 px-4 py-2 rounded-lg border border-green-200 focus:border-green-400 focus:ring-2 focus:ring-green-100 text-base ${speechCaptured ? 'ring-2 ring-green-400 border-green-500 bg-green-50 animate-pulse' : ''}`}
                 placeholder="Type your message..."
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  if (speechCaptured) setSpeechCaptured(false);
+                }}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend(e)}
                 disabled={loading}
                 style={{ minWidth: 0 }}
               />
+              {/* Speech captured message */}
+              {(recognitionActive === false && sttMode === 'browser' && input && input.trim()) || (recording === false && sttMode === 'upload' && input && input.trim()) ? (
+                <div className="ml-2 text-green-700 text-xs animate-fade-in">
+                  <span role="img" aria-label="microphone">🎤</span> Speech captured! Review and click <b>Send</b>.
+                </div>
+              ) : null}
               <button
                 className="send-btn flex items-center justify-center px-4 py-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-400 text-white font-semibold shadow hover:from-green-600 hover:to-emerald-600 transition"
                 onClick={handleSend}
@@ -727,35 +770,31 @@ function ChatAssistant() {
               {/* Speech input button: browser STT or fallback to upload */}
               {sttMode === 'browser' && SpeechRecognition ? (
                 <button
-                  className={`send-btn flex items-center justify-center px-4 py-2 rounded-lg font-semibold shadow transition ${recognitionActive ? 'bg-blue-500 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
+                  className={`send-btn flex items-center justify-center px-4 py-2 rounded-lg font-semibold shadow transition border-2 ${recognitionActive ? 'bg-blue-500 text-white border-blue-700 animate-pulse' : 'bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200'}`}
                   onClick={recognitionActive ? handleStopRecognition : handleStartRecognition}
                   disabled={loading}
                   aria-label={recognitionActive ? "Stop speech recognition" : "Start speech recognition"}
                 >
                   {recognitionActive ? <FaStopCircle /> : <FaMicrophone />}
+                  {recognitionActive && <span className="ml-2 text-xs font-bold animate-pulse">Listening...</span>}
                 </button>
               ) : (
                 <button
-                  className={`send-btn flex items-center justify-center px-4 py-2 rounded-lg font-semibold shadow transition ${recording ? 'bg-red-500 text-white' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
+                  className={`send-btn flex items-center justify-center px-4 py-2 rounded-lg font-semibold shadow transition border-2 ${recording ? 'bg-red-500 text-white border-red-700 animate-pulse' : 'bg-green-100 text-green-700 hover:bg-green-200 border-green-200'}`}
                   onClick={recording ? handleStopRecording : handleStartRecording}
                   disabled={loading}
                   aria-label={recording ? "Stop recording" : "Start recording"}
                 >
                   {recording ? <FaStopCircle /> : <FaMicrophone />}
+                  {recording && <span className="ml-2 text-xs font-bold animate-pulse">Recording...</span>}
                 </button>
               )}
               {audioUrl && (
                 <audio ref={audioPlayerRef} src={audioUrl} controls style={{ marginLeft: 8, height: 36 }} />
               )}
-            </div>
+             </div>
 
-            {/* Error message - prominent and spaced */}
-            {error && (
-              <div className="bg-red-50 border-l-4 border-red-500 p-4 mt-6 rounded-lg shadow flex items-start max-w-lg mx-auto">
-                <div className="text-red-500 mr-3 text-lg">⚠️</div>
-                <div className="text-sm text-red-700" dangerouslySetInnerHTML={{ __html: error }} />
-              </div>
-            )}
+             {/* Error message - prominent and spaced */}
              {error && (
                <div className="bg-red-50 border-l-4 border-red-500 p-4 mt-6 rounded-lg shadow flex items-start max-w-lg mx-auto">
                  <div className="text-red-500 mr-3 text-lg">⚠️</div>

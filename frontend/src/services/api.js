@@ -152,9 +152,37 @@ export const processVoiceCommandApi = async (commandData) => {
  * @param {object} chatData { message, history }
  * @returns {Promise<object>} Backend response
  */
-export const chatAssistantApi = async (chatData) => {
+export const chatAssistantApi = async ({ message, history, agent }) => {
   try {
-    const response = await apiClient.post('/chat/message', chatData);
+    const response = await apiClient.post('/chat/message', {
+      message,
+      history,
+      agent,
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      throw new Error(error.response.data.detail || `Server error: ${error.response.status}`);
+    } else if (error.request) {
+      throw new Error('No response received from server. Please check your network connection or if the backend is running.');
+    } else {
+      throw new Error(`Error sending request: ${error.message}`);
+    }
+  }
+};
+
+/**
+ * Multilingual Gemini Chat API
+ * @param {object} chatData { message, session_id, language }
+ * @returns {Promise<object>} Backend response
+ */
+export const multilingualChatApi = async ({ message, session_id, language }) => {
+  try {
+    const response = await apiClient.post('/multilingual_chat/message', {
+      message,
+      session_id,
+      language,
+    });
     return response.data;
   } catch (error) {
     if (error.response) {

@@ -1,9 +1,11 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_cors import CORS
 from google.generativeai import configure as genai_configure, GenerativeModel
 import os
 from dotenv import load_dotenv
 import json
+import uuid
+from google.cloud import texttospeech
 
 load_dotenv()
 
@@ -12,6 +14,8 @@ CORS(app)
 
 app.config['GEMINI_API_KEY'] = os.getenv("GEMINI_API_KEY")
 app.config['CONFIG_FILE'] = 'config.json'
+app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'tts_audio')
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 conversation_history = []
 
@@ -71,6 +75,36 @@ def chat():
             'status': 'error',
             'message': f"Error in chat: {str(e)}"
         }), 500
+
+@app.route('/tts', methods=['POST'])
+def tts():
+    try:
+        data = request.json
+        text = data.get('text', '')
+        language = data.get('language', 'en')
+        if not text:
+            return jsonify({'status': 'error', 'message': 'No text provided'}), 400
+        tts_client = texttospeech.TextToSpeechClient()
+        synthesis_input = texttospeech.SynthesisInput(text=text)
+        voice = texttospeech.VoiceSelectionParams(
+            language_code=language,
+            ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
+        )
+        audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3)
+        tts_response = tts_client.synthesize_speech(
+            input=synthesis_input, voice=voice, audio_config=audio_config
+        )
+        filename = f'tts_{uuid.uuid4()}.mp3'
+        audio_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        with open(audio_path, 'wb') as out:
+            out.write(tts_response.audio_content)
+        return jsonify({'audio_url': f'/tts_audio/{filename}'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'TTS error: {str(e)}'}), 500
+
+@app.route('/tts_audio/<filename>')
+def serve_audio(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route('/reset', methods=['POST'])
 def reset_conversation():

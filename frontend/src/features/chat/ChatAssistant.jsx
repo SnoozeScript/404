@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { chatAssistantApi } from '../../services/api';
+import { chatAssistantApi, multilingualChatApi } from '../../services/api';
 import { 
   FaPaperPlane, 
   FaSpinner, 
@@ -9,7 +9,8 @@ import {
   FaRegCheckCircle,
   FaShareAlt,
   FaMapMarkerAlt,
-  FaInfoCircle
+  FaInfoCircle,
+  FaGlobe
 } from "react-icons/fa";
 import { GiWheat, GiFarmTractor } from "react-icons/gi";
 import { MdOutlineScience, MdOutlineWaterDrop } from "react-icons/md";
@@ -114,6 +115,8 @@ function ChatAssistant() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [selectedAgent, setSelectedAgent] = useState("general_assistant");
+  const [selectedLanguage, setSelectedLanguage] = useState("en");
+  const [sessionId, setSessionId] = useState(null);
   const chatEndRef = useRef(null);
 
   const agentOptions = [
@@ -121,6 +124,19 @@ function ChatAssistant() {
     { value: "market_expert", label: "Market Expert", icon: <FaChartLine /> },
     { value: "weather_advisor", label: "Weather Advisor", icon: <FaCloudSun /> },
     { value: "crop_doctor", label: "Crop Doctor", icon: <FaSeedling /> },
+  ];
+
+  const languageOptions = [
+    { value: "en", label: "English" },
+    { value: "hi", label: "हिंदी (Hindi)" },
+    { value: "mr", label: "मराठी (Marathi)" },
+    { value: "gu", label: "ગુજરાતી (Gujarati)" },
+    { value: "pa", label: "ਪੰਜਾਬੀ (Punjabi)" },
+    { value: "bn", label: "বাংলা (Bengali)" },
+    { value: "te", label: "తెలుగు (Telugu)" },
+    { value: "ta", label: "தமிழ் (Tamil)" },
+    { value: "kn", label: "ಕನ್ನಡ (Kannada)" },
+    { value: "ml", label: "മലയാളം (Malayalam)" }
   ];
 
   // Scroll to bottom of chat when messages update
@@ -140,13 +156,29 @@ function ChatAssistant() {
     setInput("");
     
     try {
-      const data = await chatAssistantApi({
-        message: input,
-        history: newMessages.filter(m => m.role !== 'error').map(m => ({ role: m.role, content: m.content })),
-        agent: selectedAgent
-      });
-      
-      setMessages([...newMessages, { role: "assistant", content: data.response || "(No response)" }]);
+      // Use multilingual API if a non-English language is selected, otherwise use regular chat API
+      if (selectedLanguage !== "en") {
+        const data = await multilingualChatApi({
+          message: input,
+          session_id: sessionId,
+          language: selectedLanguage
+        });
+        
+        // Store session ID for conversation continuity
+        if (!sessionId) {
+          setSessionId(data.session_id);
+        }
+        
+        setMessages([...newMessages, { role: "assistant", content: data.response || "(No response)" }]);
+      } else {
+        const data = await chatAssistantApi({
+          message: input,
+          history: newMessages.filter(m => m.role !== 'error').map(m => ({ role: m.role, content: m.content })),
+          agent: selectedAgent
+        });
+        
+        setMessages([...newMessages, { role: "assistant", content: data.response || "(No response)" }]);
+      }
     } catch (err) {
       let errorMsg = err.message;
       if (errorMsg && errorMsg.includes('429')) {
@@ -194,6 +226,25 @@ function ChatAssistant() {
       { 
         role: "system", 
         content: `Switching to ${selectedAgentInfo?.label || 'Assistant'} mode. How can I help you?` 
+      }
+    ]);
+  };
+  
+  // Handle language change
+  const handleLanguageChange = (e) => {
+    const newLanguage = e.target.value;
+    setSelectedLanguage(newLanguage);
+    
+    // Reset session ID when language changes to start fresh conversation
+    setSessionId(null);
+    
+    // Add system message indicating language change
+    const selectedLanguageInfo = languageOptions.find(l => l.value === newLanguage);
+    setMessages([
+      ...messages,
+      { 
+        role: "system", 
+        content: `Switching to ${selectedLanguageInfo?.label || 'English'} language. How can I help you?` 
       }
     ]);
   };
@@ -367,6 +418,7 @@ function ChatAssistant() {
                     onChange={handleAgentChange}
                     className="pl-3 pr-8 py-2 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-300 focus:border-amber-300 bg-white text-gray-700 text-sm appearance-none cursor-pointer transition-colors hover:border-amber-400"
                     aria-label="Choose Expert Agent"
+                    disabled={selectedLanguage !== "en"}
                   >
                     {agentOptions.map(opt => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -378,6 +430,24 @@ function ChatAssistant() {
                     </svg>
                   </div>
                 </div>
+
+                {/* Language Selector */}
+                <div className="relative">
+                  <select
+                    value={selectedLanguage}
+                    onChange={handleLanguageChange}
+                    className="pl-3 pr-8 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-300 bg-white text-gray-700 text-sm appearance-none cursor-pointer transition-colors hover:border-blue-400"
+                    aria-label="Choose Language"
+                  >
+                    {languageOptions.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-blue-600">
+                    <FaGlobe className="w-4 h-4" />
+                  </div>
+                </div>
+
                 <button
                   onClick={handleShare}
                   className="flex items-center px-3 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-300"

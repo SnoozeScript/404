@@ -1,35 +1,35 @@
-# Core Web Framework
+# FarmGenius Backend Requirements
+# Install with: pip install -r requirements.txt
+
+# --- Core Web Framework ---
 fastapi>=0.110.0,<0.112.0         # Robust, modern web API framework
 uvicorn[standard]>=0.29.0,<0.31.0 # ASGI server for FastAPI
 
-# Environment & Config
+# --- Environment & Config ---
 python-dotenv>=1.0.0,<2.0.0       # .env file support
 
-# AI & ML Integrations
-# Gemini (Google Generative AI)
+# --- AI & ML Integrations ---
 google-generativeai>=0.5.0,<0.7.0  # Gemini API client
-# Groq (if still referenced, otherwise comment out)
-groq>=0.8.0,<0.10.0                # Groq LLM API client (remove if not used)
+# (Groq support removed; only Gemini used)
 
-# Data & Image Processing
+# --- Data & Image Processing ---
 Pillow>=10.0.0,<11.0.0             # Image handling
 python-multipart>=0.0.9            # File uploads for FastAPI
 
-# HTTP & Scraping
+# --- HTTP & Scraping ---
 httpx>=0.27.0,<0.28.0              # Async HTTP client for scraping
 beautifulsoup4>=4.12.0,<5.0.0      # HTML parsing for market data
 
-# Data Validation
+# --- Data Validation ---
 pydantic>=2.0.0,<3.0.0             # Data validation and parsing
 
-# Utilities
+# --- Utilities ---
 python-dateutil>=2.8.0,<3.0.0      # Date parsing for market data
 
-# Testing (optional, but recommended for hackathon robustness)
+# --- Testing ---
 pytest>=7.0.0,<8.0.0               # For backend tests
 
-# Logging (standard library, but can add rich for better output)
+# --- Optional: Better logging ---
 # rich>=13.0.0,<14.0.0             # (Optional) Pretty logging and tracebacks
 
-# Comment out or remove any unused dependencies below
-# starlette>=0.36.0,<0.37.0        # FastAPI dependency (auto-installed)
+# (All dependencies are required for hackathon features. Remove/comment out anything not used.)

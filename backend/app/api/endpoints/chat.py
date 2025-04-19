@@ -21,6 +21,7 @@ class ChatInput(BaseModel):
     model: Optional[str] = Field("gemini", description="Model to use (only gemini is supported)")
     language: Optional[str] = Field("en", description="Language code (en, hi, mr)")
     context_data: Optional[Dict[str, Any]] = Field(None, description="Additional context for the chat")
+    agent: Optional[str] = Field("general_assistant", description="Expert agent to handle the message")
 
 class ChatResponse(BaseModel):
     """Model for chat response data"""
@@ -48,33 +49,45 @@ async def chat_message(chat_input: ChatInput = Body(...)):
             "last_message": chat_input.message,
             **(chat_input.context_data or {})
         })
-        
-        # Send the message to the chat assistant agent
+
+        # Determine the expert agent to route to
+        agent_map = {
+            "general_assistant": AgentType.CHAT_ASSISTANT,
+            "market_expert": AgentType.MARKET_EXPERT,
+            "weather_advisor": AgentType.WEATHER_ADVISOR,
+            "crop_doctor": AgentType.CROP_DOCTOR,
+        }
+        selected_agent = agent_map.get(chat_input.agent or "general_assistant", AgentType.CHAT_ASSISTANT)
+
+        # Use a unique system prompt per agent for demonstration
+        system_prompts = {
+            AgentType.CHAT_ASSISTANT: "You are FarmGenius, your general agriculture AI assistant across India.",
+            AgentType.MARKET_EXPERT: "You are MarketExpert: Provide expert analysis and advice on agricultural markets, prices, and trends across India.",
+            AgentType.WEATHER_ADVISOR: "You are WeatherAdvisor: Provide expert advice on weather patterns, forecasts, and climate impact on farming in India.",
+            AgentType.CROP_DOCTOR: "You are CropDoctor: Provide expert advice on crop diseases, soil, and crop management for Indian agriculture.",
+        }
+        system_prompt = system_prompts.get(selected_agent, system_prompts[AgentType.CHAT_ASSISTANT])
+
+        # Send the message to the selected expert agent
         message = await coordinator.route_message(
             Message(
                 sender=AgentType.COORDINATOR,
-                receiver=AgentType.CHAT_ASSISTANT,
+                receiver=selected_agent,
                 content={
                     "message": chat_input.message,
-                    "model": chat_input.model
+                    "model": chat_input.model,
+                    "system_prompt": system_prompt
                 },
                 message_type="chat",
-                context={"session_id": session_id}
+                context={
+                    "session_id": session_id,
+                    "language": chat_input.language
+                }
             )
         )
-        
-        if not message or "error" in message.content:
-            error = message.content.get("error", "Unknown error processing chat message") if message else "No response from chat agent"
-            raise HTTPException(status_code=503, detail=error)
-        
-        # Extract response from the message
-        response_text = message.content.get("response", "Sorry, I couldn't generate a response.")
-        
-        return ChatResponse(
-            response=response_text,
-            session_id=session_id,
-            model_used=chat_input.model
-        )
+        response_text = message.content if isinstance(message.content, str) else message.content.get("response", "(No response)")
+        return ChatResponse(response=response_text, session_id=session_id, model_used=chat_input.model)
+
 
     except HTTPException as http_exc:
         # Re-raise HTTP exceptions

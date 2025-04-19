@@ -1,12 +1,39 @@
-# React + Vite
+# FarmGenius Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the frontend for **FarmGenius: AI-powered Agriculture Assistant**.
 
-Currently, two official plugins are available:
+## Overview
+FarmGenius empowers Indian farmers with actionable insights using AI. The frontend is built with React and Tailwind CSS, providing a modern, responsive, and mobile-friendly interface for yield prediction, disease detection, market prices, and AI chat.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Features
+- Yield Predictor with Google Maps integration
+- Disease Detector (AI-powered image analysis)
+- Real-time Market Prices (AgMarkNet scraping)
+- AI Chat Assistant (Gemini-powered)
+- Mobile-first, professional UI
 
-## Expanding the ESLint configuration
+## Setup & Installation
+```bash
+cd frontend
+npm install
+cp .env.example .env  # Set your VITE_GOOGLE_MAPS_API_KEY
+npm run dev
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Usage
+- Access the app at `http://localhost:5173`
+- Use the navigation bar to try all features
+- For full documentation, see the main [README.md](../README.md) at the project root
+
+## Tech Stack
+- React 19, Tailwind CSS, Vite, React Router, Axios, React Icons
+
+## API Endpoints (via backend)
+- `POST /api/v1/yield/predict`
+- `POST /api/v1/disease/detect`
+- `GET /api/v1/market/prices`
+- `POST /api/v1/chat/ask`
+
+## Hackathon Notes
+- Built for rapid deployment and real-world impact
+- See the main [README.md](../README.md) for backend setup, architecture, and full team acknowledgments

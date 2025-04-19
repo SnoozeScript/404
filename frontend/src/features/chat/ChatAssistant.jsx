@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { chatAssistantApi } from '../../services/api';
 import { FaPaperPlane, FaSpinner } from "react-icons/fa";
+import styles from "./ChatAssistant.module.css";
 
 const ChatAssistant = () => {
   const [input, setInput] = useState("");
@@ -12,7 +13,15 @@ const ChatAssistant = () => {
   ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [selectedAgent, setSelectedAgent] = useState("general_assistant");
   const chatEndRef = useRef(null);
+
+  const agentOptions = [
+    { value: "general_assistant", label: "General Assistant" },
+    { value: "market_expert", label: "Market Expert" },
+    { value: "weather_advisor", label: "Weather Advisor" },
+    { value: "crop_doctor", label: "Crop Doctor" },
+  ];
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -29,7 +38,8 @@ const ChatAssistant = () => {
     try {
       const data = await chatAssistantApi({
         message: input,
-        history: newMessages.filter(m => m.role !== 'error').map(m => ({ role: m.role, content: m.content }))
+        history: newMessages.filter(m => m.role !== 'error').map(m => ({ role: m.role, content: m.content })),
+        agent: selectedAgent
       });
       setMessages([...newMessages, { role: "assistant", content: data.response || "(No response)" }]);
     } catch (err) {
@@ -41,24 +51,48 @@ const ChatAssistant = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-100 py-16 px-2">
-      <div className="w-full max-w-2xl bg-white rounded-xl shadow-lg border border-blue-100 flex flex-col h-[70vh]">
-        <div className="flex-shrink-0 px-6 py-4 bg-blue-800 rounded-t-xl">
-          <h2 className="text-2xl font-bold text-white flex items-center">
-            <span className="mr-2">💬</span> FarmGenius Chat
+    <div className={styles["chat-container"]}>
+      <div className={styles["chat-card"]}>
+        <div className={styles["chat-header"]}>
+          <h2 style={{display: 'flex', alignItems: 'center', fontWeight: 700, fontSize: '1.6rem'}}>
+            <span style={{marginRight: 8}}>💬</span> FarmGenius Chat
           </h2>
+          <div>
+            <label htmlFor="agent-select" style={{color: '#fff', marginRight: 8, fontWeight: 500}}>Expert:</label>
+            <select
+              id="agent-select"
+              className={styles["agent-selector"]}
+              value={selectedAgent}
+              onChange={e => setSelectedAgent(e.target.value)}
+              aria-label="Choose Expert Agent"
+            >
+              {agentOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-blue-50">
+        <div className={styles["chat-messages"]}>
           {messages.map((msg, idx) => (
-            <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+            <div
+              key={idx}
+              className={
+                styles["message-row"] + " " +
+                (msg.role === "user"
+                  ? styles["message-user"]
+                  : styles["message-assistant"])
+              }
+            >
               <div
-                className={`max-w-[75%] px-4 py-2 rounded-lg shadow-sm whitespace-pre-line text-base ${
-                  msg.role === "assistant"
-                    ? "bg-white text-blue-900 border border-blue-200"
+                className={
+                  styles["message-bubble"] + " " +
+                  (msg.role === "assistant"
+                    ? styles["bubble-assistant"]
                     : msg.role === "user"
-                    ? "bg-blue-600 text-white border border-blue-600"
-                    : "bg-red-100 text-red-700 border border-red-200"
-                }`}
+                    ? styles["bubble-user"]
+                    : styles["bubble-error"])
+                }
+                aria-live={msg.role === 'assistant' ? 'polite' : undefined}
               >
                 {msg.content}
               </div>
@@ -66,25 +100,32 @@ const ChatAssistant = () => {
           ))}
           <div ref={chatEndRef} />
         </div>
-        <form onSubmit={handleSend} className="flex items-center border-t border-blue-100 p-4 bg-white rounded-b-xl">
+        <form onSubmit={handleSend} className={styles["chat-footer"]}>
           <input
             value={input}
             onChange={e => setInput(e.target.value)}
             placeholder="Type your message..."
-            className="flex-1 p-3 rounded-lg border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 mr-3"
+            className={styles["input-box"]}
             disabled={loading}
             autoFocus
+            aria-label="Type your message"
           />
           <button
             type="submit"
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center transition-all disabled:opacity-50"
+            className={styles["send-btn"]}
             disabled={loading || !input.trim()}
+            aria-label="Send message"
           >
-            {loading ? <FaSpinner className="animate-spin" /> : <FaPaperPlane />}
+            {loading ? (
+              <FaSpinner className={styles["loading-spinner"]} aria-label="Loading" />
+            ) : (
+              <FaPaperPlane style={{marginRight: 4}} />
+            )}
+            {loading ? "Sending..." : "Send"}
           </button>
         </form>
         {error && (
-          <div className="text-red-600 bg-red-50 p-2 text-center border-t border-red-100">{error}</div>
+          <div className={styles["error-message"]}>{error}</div>
         )}
       </div>
     </div>
@@ -92,3 +133,4 @@ const ChatAssistant = () => {
 };
 
 export default ChatAssistant;
+

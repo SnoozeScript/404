@@ -1,0 +1,182 @@
+.yieldContainer {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f5132 0%, #198754 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 3.5rem;
+}
+
+.yieldCard {
+  background: #fff;
+  border-radius: 1.25rem;
+  box-shadow: 0 6px 32px 0 rgba(16, 32, 16, 0.12), 0 1.5px 3px 0 rgba(16, 32, 16, 0.08);
+  padding: 2.5rem 2rem;
+  margin: 2rem 0;
+  width: 100%;
+  max-width: 540px;
+  border: 2px solid #198754;
+  position: relative;
+}
+
+.yieldHeader {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  color: #0f5132;
+}
+
+.yieldHeaderIcon {
+  font-size: 2.2rem;
+  color: #198754;
+}
+
+.yieldTitle {
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.yieldForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.yieldInputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.yieldInputLabel {
+  font-size: 1rem;
+  color: #198754;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+
+.yieldInput, .yieldSelect {
+  border: 1.5px solid #198754;
+  border-radius: 0.7rem;
+  padding: 0.7rem 1rem;
+  font-size: 1rem;
+  background: #f8fafc;
+  color: #0f5132;
+  outline: none;
+  transition: border 0.2s;
+}
+.yieldInput:focus, .yieldSelect:focus {
+  border: 2px solid #0f5132;
+}
+
+.yieldButton {
+  background: linear-gradient(90deg, #198754 60%, #43c59e 100%);
+  color: #fff;
+  font-weight: 700;
+  border: none;
+  border-radius: 0.9rem;
+  padding: 0.9rem 2.2rem;
+  font-size: 1.1rem;
+  margin-top: 1.2rem;
+  box-shadow: 0 2px 8px 0 rgba(16, 32, 16, 0.09);
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.yieldButton:hover {
+  background: linear-gradient(90deg, #157347 60%, #198754 100%);
+  box-shadow: 0 4px 16px 0 rgba(16, 32, 16, 0.16);
+}
+
+.yieldResultCard {
+  background: #e9fbe5;
+  border: 2px solid #43c59e;
+  border-radius: 1.25rem;
+  padding: 2rem 1.5rem;
+  margin-top: 2rem;
+  color: #0f5132;
+  box-shadow: 0 2px 12px 0 rgba(16, 32, 16, 0.06);
+}
+
+.yieldResultTitle {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 0.8rem;
+  color: #198754;
+}
+
+.yieldResultValue {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #157347;
+  margin-bottom: 0.5rem;
+}
+
+.yieldResultDetails {
+  font-size: 1.1rem;
+  color: #0f5132;
+}
+
+.yieldError {
+  color: #dc3545;
+  background: #fff0f0;
+  border: 1.5px solid #dc3545;
+  border-radius: 0.7rem;
+  padding: 0.7rem 1rem;
+  margin-top: 1rem;
+  font-weight: 600;
+}
+
+.yieldSpinner {
+  color: #198754;
+  font-size: 2rem;
+  margin: 2rem auto;
+  display: flex;
+  justify-content: center;
+}
+
+.yieldTabs {
+  display: flex;
+  gap: 1.2rem;
+  margin-bottom: 1.5rem;
+}
+.yieldTab {
+  background: #fff;
+  color: #198754;
+  border: 1.5px solid #198754;
+  border-radius: 0.7rem 0.7rem 0 0;
+  padding: 0.6rem 1.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.yieldTabActive {
+  background: linear-gradient(90deg, #198754 60%, #43c59e 100%);
+  color: #fff;
+}
+
+.yieldMapContainer {
+  width: 100%;
+  height: 320px;
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 2px solid #198754;
+  margin: 1rem 0 0.5rem 0;
+  background: #f8fafc;
+}
+
+@media (max-width: 600px) {
+  .yieldCard {
+    padding: 1.5rem 0.8rem;
+    margin: 1.5rem 0.2rem;
+    max-width: 98vw;
+  }
+  .yieldResultCard {
+    padding: 1.2rem 0.7rem;
+    margin-top: 1.2rem;
+  }
+  .yieldMapContainer {
+    height: 200px;
+  }
+}

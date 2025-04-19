@@ -237,16 +237,6 @@ function DiseaseDetector() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 pt-24 pb-12 flex flex-col items-center justify-center">
       {/* Subtle background elements */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-10 left-10 w-32 h-32 bg-green-200 rounded-full opacity-10 animate-pulse"></div>
-        <div
-          className="absolute bottom-20 right-20 w-40 h-40 bg-emerald-300 rounded-full opacity-10 animate-pulse"
-          style={{ animationDelay: "1s" }}
-        ></div>
-        <div
-          className="absolute top-1/3 right-10 w-24 h-24 bg-teal-200 rounded-full opacity-10 animate-pulse"
-          style={{ animationDelay: "2s" }}
-        ></div>
-
         {/* Subtle leaf accents - professionally positioned */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           {/* Top right leaf */}

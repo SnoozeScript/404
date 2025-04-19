@@ -23,6 +23,9 @@ class AgentType(Enum):
     VOICE_ASSISTANT = "voice_assistant"
     TRANSLATOR = "translator"
     CHAT_ASSISTANT = "chat_assistant"
+    MARKET_EXPERT = "market_expert"
+    WEATHER_ADVISOR = "weather_advisor"
+    CROP_DOCTOR = "crop_doctor"
 
 @dataclass
 class Message:
@@ -61,7 +64,11 @@ class Agent:
         self.agent_type = agent_type
         self.coordinator = coordinator
         self.message_handlers: Dict[str, Callable] = {}
-        
+
+    def register_handler(self, message_type: str, handler: Callable):
+        """Register a handler for a specific message type"""
+        self.message_handlers[message_type] = handler
+
     async def handle_message(self, message: Message) -> Optional[Message]:
         """Process incoming message and optionally return a response"""
         if message.message_type in self.message_handlers:
@@ -69,10 +76,98 @@ class Agent:
         else:
             logger.warning(f"Agent {self.agent_type.value} has no handler for message type {message.message_type}")
             return None
-            
-    def register_handler(self, message_type: str, handler: Callable):
-        """Register a handler for a specific message type"""
-        self.message_handlers[message_type] = handler
+
+import google.generativeai as genai
+
+class MarketExpertAgent(Agent):
+    """Specialized agent for market-related queries"""
+    def __init__(self, coordinator=None):
+        super().__init__(AgentType.MARKET_EXPERT, coordinator)
+        self.register_handler("chat", self.handle_chat)
+        self.gemini_model = genai.GenerativeModel('gemini-1.5-pro')
+
+    async def handle_chat(self, message):
+        user_message = message.content.get("message", "")
+        system_prompt = (
+            "You are MarketExpert, an AI specialized in Indian agricultural markets. "
+            "Provide accurate, up-to-date advice on prices, trends, and market strategies. "
+            "Use real data if available. If the user asks about a specific crop or location, be specific."
+        )
+        prompt = f"{system_prompt}\nUser: {user_message}"
+        try:
+            gemini_response = self.gemini_model.generate_content(prompt)
+            response_text = gemini_response.text if hasattr(gemini_response, 'text') else str(gemini_response)
+        except Exception as e:
+            logger.error(f"{self.agent_type.value} Gemini error: {e}")
+            response_text = f"Sorry, MarketExpert AI is temporarily unavailable. Error: {e}"
+        return Message(
+            sender=self.agent_type,
+            receiver=message.sender,
+            content=response_text,
+            message_type="chat_response"
+        )
+
+
+
+class WeatherAdvisorAgent(Agent):
+    """Specialized agent for weather-related queries"""
+    def __init__(self, coordinator=None):
+        super().__init__(AgentType.WEATHER_ADVISOR, coordinator)
+        self.register_handler("chat", self.handle_chat)
+        self.gemini_model = genai.GenerativeModel('gemini-1.5-pro')
+
+    async def handle_chat(self, message):
+        user_message = message.content.get("message", "")
+        system_prompt = (
+            "You are WeatherAdvisor, an AI expert in Indian agricultural weather. "
+            "Provide accurate weather forecasts, climate advice, and explain how weather impacts farming. "
+            "Reference real data if available."
+        )
+        prompt = f"{system_prompt}\nUser: {user_message}"
+        try:
+            gemini_response = self.gemini_model.generate_content(prompt)
+            response_text = gemini_response.text if hasattr(gemini_response, 'text') else str(gemini_response)
+        except Exception as e:
+            logger.error(f"{self.agent_type.value} Gemini error: {e}")
+            response_text = f"Sorry, WeatherAdvisor AI is temporarily unavailable. Error: {e}"
+        return Message(
+            sender=self.agent_type,
+            receiver=message.sender,
+            content=response_text,
+            message_type="chat_response"
+        )
+
+
+
+class CropDoctorAgent(Agent):
+    """Specialized agent for crop and disease-related queries"""
+    def __init__(self, coordinator=None):
+        super().__init__(AgentType.CROP_DOCTOR, coordinator)
+        self.register_handler("chat", self.handle_chat)
+        self.gemini_model = genai.GenerativeModel('gemini-1.5-pro')
+
+    async def handle_chat(self, message):
+        user_message = message.content.get("message", "")
+        system_prompt = (
+            "You are CropDoctor, an AI expert in Indian crop health, soil, and disease management. "
+            "Give actionable, specific advice for crop issues, pest management, and soil health. "
+            "Reference real data and best practices for Indian agriculture."
+        )
+        prompt = f"{system_prompt}\nUser: {user_message}"
+        try:
+            gemini_response = self.gemini_model.generate_content(prompt)
+            response_text = gemini_response.text if hasattr(gemini_response, 'text') else str(gemini_response)
+        except Exception as e:
+            logger.error(f"{self.agent_type.value} Gemini error: {e}")
+            response_text = f"Sorry, CropDoctor AI is temporarily unavailable. Error: {e}"
+        return Message(
+            sender=self.agent_type,
+            receiver=message.sender,
+            content=response_text,
+            message_type="chat_response"
+        )
+
+
         
     async def send_message(self, receiver: AgentType, content: Any, message_type: str, context: Dict[str, Any] = None) -> Optional[Message]:
         """Send message to another agent via coordinator"""
@@ -178,6 +273,11 @@ class ModelContextProtocol:
 # Create global instances for use across the application
 coordinator = AgentCoordinator()
 context_protocol = ModelContextProtocol()
+
+# Register specialized expert agents
+coordinator.register_agent(MarketExpertAgent(coordinator))
+coordinator.register_agent(WeatherAdvisorAgent(coordinator))
+coordinator.register_agent(CropDoctorAgent(coordinator))
 
 # Example usage
 """

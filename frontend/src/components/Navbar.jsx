@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { GiFarmTractor } from "react-icons/gi";
 import { FaWarehouse, FaLeaf, FaCloudSun, FaUser, FaRobot } from "react-icons/fa";
-import { MdVoiceChat } from "react-icons/md";
 import { BsFillBarChartFill } from "react-icons/bs";
 
 const Navbar = () => {
@@ -54,24 +53,35 @@ const Navbar = () => {
     setIsOpen(false);
   }, [location.pathname]);
 
+  // Prevent background scroll when menu is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('overflow-hidden');
+    } else {
+      document.body.classList.remove('overflow-hidden');
+    }
+    return () => document.body.classList.remove('overflow-hidden');
+  }, [isOpen]);
+
   return (
     <nav
-      className={`fixed w-full z-50 transition-all duration-300 font-sans ${
-        scrolled ? "bg-green-900 shadow-lg" : "bg-green-900"
-      }`}
+      aria-label="Main Navigation"
+      className={`fixed w-full z-50 transition-all duration-300 font-sans 
+        ${scrolled ? "bg-green-900 shadow-lg" : "bg-green-900"} 
+        dark:bg-gray-950 dark:text-gray-100`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo - professional with proper alignment */}
-          <Link
-            to="/"
-            className="flex items-center space-x-3 text-white font-bold text-xl"
-          >
-            <div className="bg-white p-1.5 rounded-full">
-              <GiFarmTractor className="text-2xl text-green-900" />
+          <div className="flex items-center justify-between px-4 py-3 md:py-2">
+            <div className="flex items-center">
+              <GiFarmTractor className="text-2xl text-yellow-400 mr-2" />
+              <span className="font-bold text-lg tracking-wide text-white dark:text-gray-100">FarmGenius</span>
             </div>
-            <span>FarmGenius</span>
-          </Link>
+            {/* No theme selector here, just logo */}
+            <div></div>
+
+          </div>
 
           {/* Desktop Links */}
           <div className="hidden md:flex items-center h-16">
@@ -96,14 +106,6 @@ const Navbar = () => {
                 to="/disease"
                 label="Disease Detector"
                 icon={<FaLeaf />}
-                currentPath={location.pathname}
-                previousPath={previousPath}
-                isTransitioning={isTransitioning}
-              />
-              <NavLink
-                to="/voice"
-                label="Voice Control"
-                icon={<MdVoiceChat />}
                 currentPath={location.pathname}
                 previousPath={previousPath}
                 isTransitioning={isTransitioning}
@@ -164,59 +166,83 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Menu with clean transition */}
+      {/* Mobile Backdrop Overlay */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black bg-opacity-40 transition-opacity duration-300 md:hidden"
+          aria-hidden="true"
+          onClick={() => setIsOpen(false)}
+        ></div>
+      )}
+      {/* Mobile Menu with slide-down and improved spacing */}
       <div
-        className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
-          isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+        className={`md:hidden fixed top-0 left-0 w-full z-50 transition-transform duration-300 ease-in-out ${
+          isOpen ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none"
         }`}
+        style={{background: "#14532d"}} // bg-green-900 fallback for dark mode
+        role="dialog"
+        aria-modal="true"
       >
-        <div className="px-4 pt-2 pb-6 space-y-3 bg-green-800 shadow-inner">
-          <MobileNavLink
-            to="/"
-            label="Home"
-            icon={<FaCloudSun />}
-            currentPath={location.pathname}
-            previousPath={previousPath}
-            isTransitioning={isTransitioning}
-          />
-          <MobileNavLink
-            to="/market"
-            label="Market"
-            icon={<FaWarehouse />}
-            currentPath={location.pathname}
-            previousPath={previousPath}
-            isTransitioning={isTransitioning}
-          />
-          <MobileNavLink
-            to="/disease"
-            label="Disease Detector"
-            icon={<FaLeaf />}
-            currentPath={location.pathname}
-            previousPath={previousPath}
-            isTransitioning={isTransitioning}
-          />
-          <MobileNavLink
-            to="/voice"
-            label="Voice Control"
-            icon={<MdVoiceChat />}
-            currentPath={location.pathname}
-            previousPath={previousPath}
-            isTransitioning={isTransitioning}
-          />
-          <MobileNavLink
-            to="/yield"
-            label="Yield Predictor"
-            icon={<BsFillBarChartFill />}
-            currentPath={location.pathname}
-            previousPath={previousPath}
-            isTransitioning={isTransitioning}
-          />
-          <div className="pt-2">
+        <div className="relative px-4 pt-4 pb-8 min-h-screen flex flex-col space-y-5">
+          {/* Close button */}
+          <button
+            onClick={() => setIsOpen(false)}
+            aria-label="Close menu"
+            className="absolute right-5 top-5 text-white bg-green-800 bg-opacity-80 rounded-full p-3 shadow-lg focus:outline-none hover:bg-green-700"
+            tabIndex={isOpen ? 0 : -1}
+          >
+            <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+          <div className="mt-16 flex flex-col gap-3">
+            <MobileNavLink
+              to="/"
+              label="Home"
+              icon={<FaCloudSun className="text-xl mr-3" />}
+              currentPath={location.pathname}
+              previousPath={previousPath}
+              isTransitioning={isTransitioning}
+            />
+            <MobileNavLink
+              to="/market"
+              label="Market"
+              icon={<FaWarehouse className="text-xl mr-3" />}
+              currentPath={location.pathname}
+              previousPath={previousPath}
+              isTransitioning={isTransitioning}
+            />
+            <MobileNavLink
+              to="/disease"
+              label="Disease Detector"
+              icon={<FaLeaf className="text-xl mr-3" />}
+              currentPath={location.pathname}
+              previousPath={previousPath}
+              isTransitioning={isTransitioning}
+            />
+            <MobileNavLink
+              to="/yield"
+              label="Yield Predictor"
+              icon={<BsFillBarChartFill className="text-xl mr-3" />}
+              currentPath={location.pathname}
+              previousPath={previousPath}
+              isTransitioning={isTransitioning}
+            />
+            <MobileNavLink
+              to="/chat"
+              label="AI Chat"
+              icon={<FaRobot className="text-xl mr-3" />}
+              currentPath={location.pathname}
+              previousPath={previousPath}
+              isTransitioning={isTransitioning}
+            />
             <Link
               to="/login"
-              className="block w-full text-center text-green-900 bg-white hover:bg-green-50 px-4 py-3 rounded-lg transition-colors duration-300 font-bold shadow-sm flex items-center justify-center space-x-2"
+              className="w-full flex items-center justify-center gap-2 text-green-900 bg-white hover:bg-green-50 px-4 py-4 rounded-lg transition-colors duration-300 font-bold shadow-sm text-lg mt-3"
+              tabIndex={isOpen ? 0 : -1}
             >
-              <FaUser />
+              <FaUser className="text-xl" />
               <span>Login</span>
             </Link>
           </div>

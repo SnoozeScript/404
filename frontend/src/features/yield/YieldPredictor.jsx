@@ -11,11 +11,13 @@ import {
   FaRegCheckCircle,
   FaTimes,
   FaSearchLocation,
+  FaInfoCircle,
 } from "react-icons/fa";
 import { GiFarmTractor, GiPlantRoots, GiWheat } from "react-icons/gi";
 import { WiHumidity } from "react-icons/wi";
+import { MdOutlineScience, MdOutlineWaterDrop } from "react-icons/md";
 
-// Fade in component for animation - reused from DiseaseDetector
+// Fade in animation component
 const FadeInSection = ({ children, delay = 0 }) => {
   const [isVisible, setVisible] = useState(false);
   const domRef = React.useRef();
@@ -28,23 +30,18 @@ const FadeInSection = ({ children, delay = 0 }) => {
       }
     });
 
-    const currentRef = domRef.current; // Store ref value to avoid closure issues
-    
-    if (currentRef) {
-      observer.observe(currentRef);
-    }
+    const currentRef = domRef.current;
+    if (currentRef) observer.observe(currentRef);
 
     return () => {
-      if (currentRef) { // Use stored ref value in cleanup
-        observer.disconnect();
-      }
+      if (currentRef) observer.disconnect();
     };
   }, []);
 
   return (
     <div
       ref={domRef}
-      className="transition-all duration-1000 ease-in-out"
+      className="transition-all duration-700 ease-out"
       style={{
         opacity: isVisible ? 1 : 0,
         transform: isVisible ? "none" : "translateY(20px)",
@@ -52,6 +49,28 @@ const FadeInSection = ({ children, delay = 0 }) => {
       }}
     >
       {children}
+    </div>
+  );
+};
+
+// Tooltip component for form fields
+const Tooltip = ({ content }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  return (
+    <div className="relative inline-block ml-2">
+      <button 
+        onMouseEnter={() => setShowTooltip(true)} 
+        onMouseLeave={() => setShowTooltip(false)}
+        className="text-gray-400 hover:text-gray-600 focus:outline-none"
+      >
+        <FaInfoCircle className="text-sm" />
+      </button>
+      {showTooltip && (
+        <div className="absolute z-10 w-48 p-2 mt-2 text-xs text-white bg-gray-800 rounded-md shadow-lg left-1/2 transform -translate-x-1/2">
+          {content}
+        </div>
+      )}
     </div>
   );
 };
@@ -76,20 +95,19 @@ function YieldPredictor() {
     location_name: "",
   });
 
-  // Map refs and state
+  // UI state
   const mapRef = useRef(null);
   const mapContainerRef = useRef(null);
   const [showMap, setShowMap] = useState(false);
   const [locationSelected, setLocationSelected] = useState(false);
-
-  // UI state
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [prediction, setPrediction] = useState(null);
-  const [analysisStage, setAnalysisStage] = useState(0); // 0: none, 1: processing, 2: analyzing, 3: complete
+  const [analysisStage, setAnalysisStage] = useState(0);
   const [progressPercent, setProgressPercent] = useState(0);
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [weatherData, setWeatherData] = useState(null);
+  const [activeTab, setActiveTab] = useState("form");
 
   // Available options
   const crops = [
@@ -103,7 +121,7 @@ function YieldPredictor() {
   const seasons = ["Kharif", "Rabi", "Summer"];
   const states = ["Maharashtra", "Karnataka", "Gujarat", "Madhya Pradesh", "Punjab", "Haryana", "Uttar Pradesh", "Bihar", "West Bengal", "Tamil Nadu", "Andhra Pradesh", "Telangana"];
 
-  // State center coordinates (approximate) for initial map view - wrapped in useMemo to optimize performance
+  // State center coordinates
   const STATE_COORDINATES = useMemo(() => ({
     "Maharashtra": {lat: 19.7515, lng: 75.7139},
     "Karnataka": {lat: 15.3173, lng: 75.7139},
@@ -121,7 +139,6 @@ function YieldPredictor() {
 
   // Initialize Google Maps
   useEffect(() => {
-    // Load Google Maps API script
     const loadGoogleMapsAPI = () => {
       if (window.google && window.google.maps) {
         initializeMap();
@@ -136,7 +153,6 @@ function YieldPredictor() {
       document.head.appendChild(script);
     };
 
-    // Initialize map once API is loaded
     const initializeMap = () => {
       if (!mapContainerRef.current) return;
 
@@ -148,17 +164,29 @@ function YieldPredictor() {
         mapTypeControl: true,
         streetViewControl: false,
         fullscreenControl: false,
+        styles: [
+          {
+            featureType: "poi",
+            stylers: [{ visibility: "off" }]
+          },
+          {
+            featureType: "transit",
+            elementType: "labels.icon",
+            stylers: [{ visibility: "off" }]
+          }
+        ]
       });
 
-      // Create marker for selected location
       const marker = new window.google.maps.Marker({
         position: defaultCenter,
         map: map,
         draggable: true,
         title: 'Farm Location',
+        icon: {
+          url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png"
+        }
       });
 
-      // Update coordinates when marker is dragged
       marker.addListener('dragend', () => {
         const position = marker.getPosition();
         setFormData(prev => ({
@@ -168,7 +196,6 @@ function YieldPredictor() {
         }));
         setLocationSelected(true);
         
-        // Get location name from coordinates
         const geocoder = new window.google.maps.Geocoder();
         geocoder.geocode({ location: position }, (results, status) => {
           if (status === 'OK' && results[0]) {
@@ -180,7 +207,6 @@ function YieldPredictor() {
         });
       });
 
-      // Allow clicking on map to set marker
       map.addListener('click', (event) => {
         marker.setPosition(event.latLng);
         setFormData(prev => ({
@@ -190,7 +216,6 @@ function YieldPredictor() {
         }));
         setLocationSelected(true);
         
-        // Get location name from coordinates
         const geocoder = new window.google.maps.Geocoder();
         geocoder.geocode({ location: event.latLng }, (results, status) => {
           if (status === 'OK' && results[0]) {
@@ -202,7 +227,6 @@ function YieldPredictor() {
         });
       });
 
-      // Add search box
       const input = document.getElementById('location-search');
       const searchBox = new window.google.maps.places.SearchBox(input);
       
@@ -217,12 +241,10 @@ function YieldPredictor() {
         const place = places[0];
         if (!place.geometry || !place.geometry.location) return;
 
-        // Set map center and marker to selected place
         map.setCenter(place.geometry.location);
         map.setZoom(12);
         marker.setPosition(place.geometry.location);
 
-        // Update form data
         setFormData(prev => ({
           ...prev,
           latitude: place.geometry.location.lat(),
@@ -299,16 +321,15 @@ function YieldPredictor() {
     setPrediction(null);
     setError("");
     setFormSubmitted(true);
+    setActiveTab("results");
 
-    // Animation stages
-    setAnalysisStage(1); // Processing
+    setAnalysisStage(1);
 
     setTimeout(() => {
-      setAnalysisStage(2); // Analyzing
+      setAnalysisStage(2);
     }, 1500);
 
     try {
-      // Convert numeric fields
       const numericData = {
         ...formData,
         area: parseFloat(formData.area),
@@ -322,7 +343,6 @@ function YieldPredictor() {
         organic_carbon: parseFloat(formData.organic_carbon),
       };
 
-      // Add location data if available
       if (formData.latitude && formData.longitude) {
         numericData.latitude = parseFloat(formData.latitude);
         numericData.longitude = parseFloat(formData.longitude);
@@ -331,12 +351,10 @@ function YieldPredictor() {
 
       const result = await predictYieldApi(numericData);
       
-      // Set prediction result
       setPrediction(result);
-      setAnalysisStage(3); // Complete
+      setAnalysisStage(3);
       setProgressPercent(100);
 
-      // Set weather data if available in the response
       if (result.weather_data) {
         setWeatherData(result.weather_data);
       }
@@ -371,102 +389,177 @@ function YieldPredictor() {
     setError("");
     setAnalysisStage(0);
     setFormSubmitted(false);
+    setActiveTab("form");
   };
 
+  // Calculate yield potential based on inputs (simplified example)
+  const calculateYieldPotential = useMemo(() => {
+    if (!formData.crop || !formData.area || !formData.annual_rainfall) return null;
+    
+    // This is a very simplified calculation for UI purposes only
+    // In a real app, this would be replaced with actual predictive logic
+    const baseYield = {
+      "Rice": 3.5, "Wheat": 2.8, "Maize": 3.0, "Cotton": 1.2, "Sugarcane": 70
+    }[formData.crop] || 2.5;
+    
+    const rainfallFactor = Math.min(1, formData.annual_rainfall / 1000);
+    const soilFactor = (parseFloat(formData.ph) > 5.5 && parseFloat(formData.ph) < 7.5) ? 1.1 : 0.9;
+    
+    return (baseYield * rainfallFactor * soilFactor).toFixed(1);
+  }, [formData]);
+
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-6 bg-white rounded-xl shadow-lg mt-8">
-      <div className="flex items-center mb-6">
-        <GiWheat className="text-3xl text-amber-600 mr-3" />
-        <h2 className="text-2xl md:text-3xl font-bold text-amber-700">Crop Yield Predictor</h2>
+    <div className="max-w-7xl mx-auto p-4 md:p-6 bg-white rounded-xl shadow-lg mt-8 border border-gray-100">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
+        <div className="flex items-center mb-4 md:mb-0">
+          <div className="bg-amber-100 p-3 rounded-full mr-4">
+            <GiWheat className="text-3xl text-amber-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Crop Yield Predictor</h1>
+            <p className="text-gray-600">Optimize your harvest with AI-powered yield predictions</p>
+          </div>
+        </div>
+        
+        {calculateYieldPotential && (
+          <div className="bg-gradient-to-r from-green-50 to-amber-50 p-4 rounded-lg border border-green-100">
+            <p className="text-sm text-gray-600">Estimated yield potential</p>
+            <p className="text-2xl font-bold text-green-700">
+              {calculateYieldPotential} <span className="text-base font-normal">tons/ha</span>
+            </p>
+          </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Main Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Form Section */}
-        <div className="bg-amber-50 p-4 md:p-6 rounded-lg shadow-md">
-          <FadeInSection delay={100}>
-            <h3 className="text-xl font-semibold mb-4 flex items-center">
-              <FaSeedling className="mr-2 text-green-600" />
-              Enter Crop Details
-            </h3>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Crop Selection */}
-              <div className="form-group">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  <FaLeaf className="inline mr-2 text-green-500" />
-                  Crop Type
-                </label>
-                <select
-                  name="crop"
-                  value={formData.crop}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                  required
+        <div className={`lg:col-span-2 ${activeTab !== "form" ? "hidden lg:block" : ""}`}>
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-800 flex items-center">
+                <FaSeedling className="mr-2 text-green-500" />
+                Crop Details
+              </h3>
+              <div className="flex space-x-2">
+                <button
+                  onClick={handleReset}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 transition-colors"
                 >
-                  <option value="">Select a crop</option>
-                  {crops.map((crop) => (
-                    <option key={crop} value={crop}>
-                      {crop}
-                    </option>
-                  ))}
-                </select>
+                  Reset
+                </button>
+                <button
+                  onClick={() => setActiveTab("results")}
+                  disabled={!prediction}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${prediction ? "bg-blue-500 text-white hover:bg-blue-600" : "bg-gray-200 text-gray-400 cursor-not-allowed"}`}
+                >
+                  View Results
+                </button>
               </div>
+            </div>
 
-              {/* Season Selection */}
-              <div className="form-group">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  <FaCloudSun className="inline mr-2 text-blue-500" />
-                  Growing Season
-                </label>
-                <select
-                  name="season"
-                  value={formData.season}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                  required
-                >
-                  <option value="">Select a season</option>
-                  {seasons.map((season) => (
-                    <option key={season} value={season}>
-                      {season}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Crop Selection */}
+                <div className="form-group">
+                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                    <FaLeaf className="mr-2 text-green-500" />
+                    Crop Type
+                    <Tooltip content="Select the primary crop you're growing this season" />
+                  </label>
+                  <select
+                    name="crop"
+                    value={formData.crop}
+                    onChange={handleChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white"
+                    required
+                  >
+                    <option value="">Select a crop</option>
+                    {crops.map((crop) => (
+                      <option key={crop} value={crop}>
+                        {crop}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              {/* State Selection */}
-              <div className="form-group">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  <FaMapMarkerAlt className="inline mr-2 text-red-500" />
-                  State
-                </label>
-                <select
-                  name="state"
-                  value={formData.state}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                  required
-                >
-                  {states.map((state) => (
-                    <option key={state} value={state}>
-                      {state}
-                    </option>
-                  ))}
-                </select>
+                {/* Season Selection */}
+                <div className="form-group">
+                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                    <FaCloudSun className="mr-2 text-blue-500" />
+                    Growing Season
+                  </label>
+                  <select
+                    name="season"
+                    value={formData.season}
+                    onChange={handleChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white"
+                    required
+                  >
+                    <option value="">Select a season</option>
+                    {seasons.map((season) => (
+                      <option key={season} value={season}>
+                        {season}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* State Selection */}
+                <div className="form-group">
+                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                    <FaMapMarkerAlt className="mr-2 text-red-500" />
+                    State
+                  </label>
+                  <select
+                    name="state"
+                    value={formData.state}
+                    onChange={handleChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white"
+                    required
+                  >
+                    {states.map((state) => (
+                      <option key={state} value={state}>
+                        {state}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Area Input */}
+                <div className="form-group">
+                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                    <FaRuler className="mr-2 text-gray-600" />
+                    Area (Hectares)
+                  </label>
+                  <input
+                    type="number"
+                    name="area"
+                    value={formData.area}
+                    onChange={handleChange}
+                    placeholder="e.g., 2.5"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                    min="0.1"
+                    step="0.1"
+                    required
+                  />
+                </div>
               </div>
 
               {/* Location Selection */}
-              <div className="form-group mt-6">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  <FaMapMarkerAlt className="inline mr-2 text-red-500" />
+              <div className="form-group">
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                  <FaMapMarkerAlt className="mr-2 text-red-500" />
                   Farm Location
+                  <Tooltip content="Precise location helps us provide weather-specific recommendations" />
                 </label>
                 
-                <div className="flex items-center mb-2">
+                <div className="flex items-center mb-3">
                   <button 
                     type="button" 
                     onClick={() => setShowMap(!showMap)}
-                    className="flex items-center px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                    className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-sm"
                   >
                     <FaSearchLocation className="mr-2" />
                     {showMap ? "Hide Map" : "Select on Map"}
@@ -484,14 +577,14 @@ function YieldPredictor() {
                       id="location-search"
                       type="text"
                       placeholder="Search for a location"
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                     <div 
                       ref={mapContainerRef} 
-                      className="w-full h-64 rounded-md border border-gray-300 bg-gray-100"
+                      className="w-full h-64 rounded-lg border border-gray-300 bg-gray-100 shadow-inner"
                     ></div>
                     {formData.location_name && (
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-gray-600 p-2 bg-gray-50 rounded">
                         Selected: {formData.location_name}
                       </div>
                     )}
@@ -499,30 +592,12 @@ function YieldPredictor() {
                 )}
               </div>
 
-              {/* Area Input */}
-              <div className="form-group">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  <FaRuler className="inline mr-2 text-gray-600" />
-                  Area (Hectares)
-                </label>
-                <input
-                  type="number"
-                  name="area"
-                  value={formData.area}
-                  onChange={handleChange}
-                  placeholder="e.g., 2.5"
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                  min="0.1"
-                  step="0.1"
-                  required
-                />
-              </div>
-
               {/* Rainfall Input */}
               <div className="form-group">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  <WiHumidity className="inline mr-2 text-blue-500" />
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                  <MdOutlineWaterDrop className="mr-2 text-blue-500 text-lg" />
                   Annual Rainfall (mm)
+                  <Tooltip content="Average annual rainfall for your region in millimeters" />
                 </label>
                 <input
                   type="number"
@@ -530,86 +605,89 @@ function YieldPredictor() {
                   value={formData.annual_rainfall}
                   onChange={handleChange}
                   placeholder="e.g., 800"
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                   min="0"
                   required
                 />
               </div>
 
-              {/* Soil Health Parameters */}
-              <FadeInSection delay={200}>
-                <div className="bg-white p-3 rounded-md shadow-sm mb-4">
-                  <h4 className="text-md font-medium mb-3 flex items-center">
-                    <GiPlantRoots className="mr-2 text-brown-600" />
-                    Soil Health Parameters
-                  </h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="form-group">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        pH Level
-                      </label>
-                      <input
-                        type="number"
-                        name="ph"
-                        value={formData.ph}
-                        onChange={handleChange}
-                        placeholder="e.g., 6.5"
-                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                        min="0"
-                        max="14"
-                        step="0.1"
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Nitrogen (kg/ha)
-                      </label>
-                      <input
-                        type="number"
-                        name="n"
-                        value={formData.n}
-                        onChange={handleChange}
-                        placeholder="e.g., 140"
-                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                        min="0"
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Phosphorus (kg/ha)
-                      </label>
-                      <input
-                        type="number"
-                        name="p"
-                        value={formData.p}
-                        onChange={handleChange}
-                        placeholder="e.g., 50"
-                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                        min="0"
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Potassium (kg/ha)
-                      </label>
-                      <input
-                        type="number"
-                        name="k"
-                        value={formData.k}
-                        onChange={handleChange}
-                        placeholder="e.g., 200"
-                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                        min="0"
-                        required
-                      />
-                    </div>
+              {/* Soil Health Section */}
+              <div className="bg-gray-50 p-5 rounded-lg border border-gray-200">
+                <h4 className="text-md font-medium mb-4 flex items-center text-gray-800">
+                  <MdOutlineScience className="mr-2 text-amber-600" />
+                  Soil Health Parameters
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="form-group">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      pH Level
+                      <Tooltip content="Soil pH affects nutrient availability (ideal range: 6.0-7.0 for most crops)" />
+                    </label>
+                    <input
+                      type="number"
+                      name="ph"
+                      value={formData.ph}
+                      onChange={handleChange}
+                      placeholder="e.g., 6.5"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                      min="0"
+                      max="14"
+                      step="0.1"
+                      required
+                    />
                   </div>
-                  <div className="mt-3">
+                  <div className="form-group">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nitrogen (kg/ha)
+                      <Tooltip content="Essential for leaf growth and green color" />
+                    </label>
+                    <input
+                      type="number"
+                      name="n"
+                      value={formData.n}
+                      onChange={handleChange}
+                      placeholder="e.g., 140"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                      min="0"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Phosphorus (kg/ha)
+                      <Tooltip content="Important for root development and energy transfer" />
+                    </label>
+                    <input
+                      type="number"
+                      name="p"
+                      value={formData.p}
+                      onChange={handleChange}
+                      placeholder="e.g., 50"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                      min="0"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Potassium (kg/ha)
+                      <Tooltip content="Enhances disease resistance and fruit quality" />
+                    </label>
+                    <input
+                      type="number"
+                      name="k"
+                      value={formData.k}
+                      onChange={handleChange}
+                      placeholder="e.g., 200"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                      min="0"
+                      required
+                    />
+                  </div>
+                  <div className="form-group md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Organic Carbon (%)
+                      <Tooltip content="Indicates soil organic matter content and fertility" />
                     </label>
                     <input
                       type="number"
@@ -617,7 +695,7 @@ function YieldPredictor() {
                       value={formData.organic_carbon}
                       onChange={handleChange}
                       placeholder="e.g., 0.5"
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                       min="0"
                       max="10"
                       step="0.1"
@@ -625,56 +703,56 @@ function YieldPredictor() {
                     />
                   </div>
                 </div>
-              </FadeInSection>
+              </div>
 
-              {/* Fertilizer and Pesticide Inputs */}
-              <FadeInSection delay={300}>
-                <div className="bg-white p-3 rounded-md shadow-sm mb-4">
-                  <h4 className="text-md font-medium mb-3 flex items-center">
-                    <GiFarmTractor className="mr-2 text-green-700" />
-                    Farm Management
-                  </h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="form-group">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Fertilizer (kg/ha)
-                      </label>
-                      <input
-                        type="number"
-                        name="fertilizer"
-                        value={formData.fertilizer}
-                        onChange={handleChange}
-                        placeholder="e.g., 100"
-                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                        min="0"
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Pesticide (kg/ha)
-                      </label>
-                      <input
-                        type="number"
-                        name="pesticide"
-                        value={formData.pesticide}
-                        onChange={handleChange}
-                        placeholder="e.g., 2"
-                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                        min="0"
-                        required
-                      />
-                    </div>
+              {/* Farm Management Section */}
+              <div className="bg-green-50 p-5 rounded-lg border border-green-100">
+                <h4 className="text-md font-medium mb-4 flex items-center text-gray-800">
+                  <GiFarmTractor className="mr-2 text-green-600" />
+                  Farm Management
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="form-group">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Fertilizer (kg/ha)
+                      <Tooltip content="Total fertilizer applied per hectare this season" />
+                    </label>
+                    <input
+                      type="number"
+                      name="fertilizer"
+                      value={formData.fertilizer}
+                      onChange={handleChange}
+                      placeholder="e.g., 100"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                      min="0"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Pesticide (kg/ha)
+                      <Tooltip content="Total pesticide applied per hectare this season" />
+                    </label>
+                    <input
+                      type="number"
+                      name="pesticide"
+                      value={formData.pesticide}
+                      onChange={handleChange}
+                      placeholder="e.g., 2"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                      min="0"
+                      required
+                    />
                   </div>
                 </div>
-              </FadeInSection>
+              </div>
 
-              {/* Submit and Reset Buttons */}
-              <div className="flex space-x-4 mt-6">
+              {/* Submit Button */}
+              <div className="pt-4">
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2 px-4 rounded-md font-medium flex items-center justify-center transition-colors duration-300"
+                  className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white py-3 px-6 rounded-lg font-medium flex items-center justify-center transition-all duration-300 shadow-md hover:shadow-lg"
                 >
                   {isLoading ? (
                     <>
@@ -688,168 +766,230 @@ function YieldPredictor() {
                     </>
                   )}
                 </button>
-                <button
-                  type="button"
-                  onClick={handleReset}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors duration-300"
-                >
-                  Reset
-                </button>
               </div>
             </form>
-          </FadeInSection>
+          </div>
         </div>
 
         {/* Results Section */}
-        <div className="bg-gray-50 p-4 md:p-6 rounded-lg shadow-md">
-          {isLoading && (
-            <FadeInSection>
-              <div className="text-center py-8">
-                <div className="mb-4">
-                  <FaSpinner className="animate-spin text-4xl text-amber-600 mx-auto" />
+        <div className={`${activeTab !== "results" ? "hidden lg:block" : ""}`}>
+          <div className="sticky top-6">
+            {isLoading && (
+              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                <div className="text-center py-4">
+                  <div className="mb-6">
+                    <div className="relative w-20 h-20 mx-auto mb-4">
+                      <div className="absolute inset-0 rounded-full border-4 border-amber-100"></div>
+                      <FaSpinner className="animate-spin text-4xl text-amber-600 absolute inset-0 m-auto" />
+                    </div>
+                    <h3 className="text-xl font-semibold mb-3">
+                      {analysisStage === 1
+                        ? "Processing Data..."
+                        : "Analyzing Conditions..."}
+                    </h3>
+                    <div className="w-full bg-gray-200 rounded-full h-2.5 mb-6">
+                      <div
+                        className="bg-gradient-to-r from-amber-400 to-amber-600 h-2.5 rounded-full transition-all duration-300"
+                        style={{ width: `${progressPercent}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-gray-600">
+                      {analysisStage === 1
+                        ? "Preparing your farm data for analysis..."
+                        : "Calculating expected yield based on soil, weather and management factors..."}
+                    </p>
+                  </div>
                 </div>
-                <h3 className="text-xl font-semibold mb-2">
-                  {analysisStage === 1
-                    ? "Processing Data..."
-                    : "Analyzing Crop Conditions..."}
-                </h3>
-                <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
-                  <div
-                    className="bg-amber-600 h-2.5 rounded-full transition-all duration-300"
-                    style={{ width: `${progressPercent}%` }}
-                  ></div>
-                </div>
-                <p className="text-gray-600">
-                  {analysisStage === 1
-                    ? "Preparing your data for analysis..."
-                    : "Calculating expected yield based on conditions..."}
-                </p>
               </div>
-            </FadeInSection>
-          )}
+            )}
 
-          {error && !isLoading && (
-            <FadeInSection>
-              <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+            {error && !isLoading && (
+              <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg">
                 <div className="flex items-start">
-                  <div className="flex-shrink-0">
+                  <div className="flex-shrink-0 pt-0.5">
                     <FaTimes className="text-red-500" />
                   </div>
                   <div className="ml-3">
-                    <h3 className="text-sm font-medium text-red-800">Error</h3>
-                    <div className="mt-2 text-sm text-red-700">{error}</div>
+                    <h3 className="text-sm font-medium text-red-800">Prediction Error</h3>
+                    <div className="mt-1 text-sm text-red-700">{error}</div>
+                    <div className="mt-3">
+                      <button
+                        onClick={() => setError("")}
+                        className="text-sm text-red-600 hover:text-red-500 font-medium"
+                      >
+                        Try again →
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </FadeInSection>
-          )}
+            )}
 
-          {!isLoading && !error && !prediction && !formSubmitted && (
-            <FadeInSection>
-              <div className="text-center py-12">
-                <GiWheat className="text-6xl text-amber-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Yield Prediction</h3>
-                <p className="text-gray-600 mb-6">
-                  Fill out the form with your crop details to get an estimated yield
-                  prediction and personalized recommendations.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                  <div className="bg-white p-3 rounded-lg shadow-sm">
-                    <FaLeaf className="text-2xl text-green-500 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600">Crop-specific predictions</p>
+            {!isLoading && !error && !prediction && !formSubmitted && (
+              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                <div className="text-center py-6">
+                  <div className="bg-amber-100 p-4 rounded-full inline-block mb-4">
+                    <GiWheat className="text-4xl text-amber-600" />
                   </div>
-                  <div className="bg-white p-3 rounded-lg shadow-sm">
-                    <FaChartLine className="text-2xl text-blue-500 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600">Yield estimates</p>
-                  </div>
-                  <div className="bg-white p-3 rounded-lg shadow-sm">
-                    <GiFarmTractor className="text-2xl text-amber-600 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600">Farming recommendations</p>
+                  <h3 className="text-xl font-semibold mb-3">Yield Prediction</h3>
+                  <p className="text-gray-600 mb-6">
+                    Fill out the form with your crop details to get an AI-powered yield
+                    prediction and personalized farming recommendations.
+                  </p>
+                  <div className="grid grid-cols-1 gap-4 text-left">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="flex items-center mb-2">
+                        <div className="bg-green-100 p-2 rounded-full mr-3">
+                          <FaLeaf className="text-green-500" />
+                        </div>
+                        <h4 className="font-medium">Crop-specific predictions</h4>
+                      </div>
+                      <p className="text-sm text-gray-600">Accurate forecasts tailored to your selected crop variety</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="flex items-center mb-2">
+                        <div className="bg-blue-100 p-2 rounded-full mr-3">
+                          <FaChartLine className="text-blue-500" />
+                        </div>
+                        <h4 className="font-medium">Precision estimates</h4>
+                      </div>
+                      <p className="text-sm text-gray-600">Data-driven yield projections for your exact conditions</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="flex items-center mb-2">
+                        <div className="bg-amber-100 p-2 rounded-full mr-3">
+                          <GiFarmTractor className="text-amber-500" />
+                        </div>
+                        <h4 className="font-medium">Actionable insights</h4>
+                      </div>
+                      <p className="text-sm text-gray-600">Practical recommendations to optimize your harvest</p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </FadeInSection>
-          )}
+            )}
 
-          {!isLoading && prediction && (
-            <FadeInSection delay={300}>
-              <div className="bg-white rounded-lg shadow-sm p-5 border-l-4 border-green-500">
-                <div className="flex items-center mb-4">
-                  <FaRegCheckCircle className="text-2xl text-green-500 mr-3" />
-                  <h3 className="text-xl font-semibold">Prediction Results</h3>
+            {!isLoading && prediction && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+                {/* Results Header */}
+                <div className="bg-gradient-to-r from-green-600 to-green-700 p-5 text-white">
+                  <div className="flex items-center">
+                    <FaRegCheckCircle className="text-2xl mr-3" />
+                    <h3 className="text-xl font-semibold">Prediction Results</h3>
+                  </div>
+                  <p className="text-green-100 text-sm mt-1">
+                    Analysis completed for {formData.crop} in {formData.state}
+                  </p>
                 </div>
 
-                <div className="mb-6">
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="bg-gray-50 p-3 rounded-md">
-                      <p className="text-sm text-gray-500">Predicted Yield</p>
-                      <p className="text-2xl font-bold text-amber-700">
+                {/* Results Content */}
+                <div className="p-5">
+                  {/* Key Metrics */}
+                  <div className="grid grid-cols-1 gap-4 mb-6">
+                    <div className="bg-green-50 p-4 rounded-lg border border-green-100">
+                      <p className="text-sm text-green-700 font-medium mb-1">Predicted Yield</p>
+                      <p className="text-3xl font-bold text-green-800">
                         {prediction.yield.toFixed(2)}
-                        <span className="text-sm font-normal ml-1">tons/ha</span>
+                        <span className="text-base font-normal ml-1">tons/ha</span>
                       </p>
                     </div>
-                    <div className="bg-gray-50 p-3 rounded-md">
-                      <p className="text-sm text-gray-500">Estimated Production</p>
-                      <p className="text-2xl font-bold text-amber-700">
+                    <div className="bg-amber-50 p-4 rounded-lg border border-amber-100">
+                      <p className="text-sm text-amber-700 font-medium mb-1">Estimated Production</p>
+                      <p className="text-3xl font-bold text-amber-800">
                         {prediction.estimated_production.toFixed(2)}
-                        <span className="text-sm font-normal ml-1">tons</span>
+                        <span className="text-base font-normal ml-1">tons</span>
                       </p>
                     </div>
                   </div>
 
                   {/* Weather data if available */}
                   {weatherData && (
-                    <div className="mt-4 mb-4 bg-blue-50 p-3 rounded-md">
-                      <h4 className="font-medium text-gray-800 mb-2 flex items-center">
+                    <div className="mb-6">
+                      <h4 className="font-medium text-gray-800 mb-3 flex items-center">
                         <FaCloudSun className="mr-2 text-blue-500" />
                         Current Weather Conditions
                       </h4>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div>
-                          <span className="text-gray-600">Temperature:</span>
-                          <span className="ml-2 font-medium">{weatherData.current_temp}°C</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">Humidity:</span>
-                          <span className="ml-2 font-medium">{weatherData.current_humidity}%</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">Conditions:</span>
-                          <span className="ml-2 font-medium">{weatherData.current_conditions}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">Est. Monthly Rainfall:</span>
-                          <span className="ml-2 font-medium">{weatherData.monthly_rainfall_estimate.toFixed(1)} cm</span>
+                      <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="flex items-center">
+                            <div className="bg-blue-100 p-2 rounded-full mr-3">
+                              <FaCloudSun className="text-blue-500" />
+                            </div>
+                            <div>
+                              <p className="text-gray-600">Temperature</p>
+                              <p className="font-medium">{weatherData.current_temp}°C</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <div className="bg-blue-100 p-2 rounded-full mr-3">
+                              <WiHumidity className="text-blue-500 text-xl" />
+                            </div>
+                            <div>
+                              <p className="text-gray-600">Humidity</p>
+                              <p className="font-medium">{weatherData.current_humidity}%</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <div className="bg-blue-100 p-2 rounded-full mr-3">
+                              <MdOutlineWaterDrop className="text-blue-500 text-xl" />
+                            </div>
+                            <div>
+                              <p className="text-gray-600">Conditions</p>
+                              <p className="font-medium capitalize">{weatherData.current_conditions.toLowerCase()}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <div className="bg-blue-100 p-2 rounded-full mr-3">
+                              <FaCloudSun className="text-blue-500" />
+                            </div>
+                            <div>
+                              <p className="text-gray-600">Est. Rainfall</p>
+                              <p className="font-medium">{weatherData.monthly_rainfall_estimate.toFixed(1)} cm</p>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
                   )}
 
-                  <div className="mt-6">
-                    <h4 className="font-medium text-gray-800 mb-2 flex items-center">
+                  {/* Recommendations */}
+                  <div className="mb-4">
+                    <h4 className="font-medium text-gray-800 mb-3 flex items-center">
                       <FaSeedling className="mr-2 text-green-600" />
                       Recommendations
                     </h4>
-                    <ul className="list-disc list-inside space-y-2 text-gray-700 bg-green-50 p-4 rounded-md">
+                    <div className="space-y-3">
                       {prediction.recommendations.map((rec, index) => (
-                        <li key={index} className="text-sm">
-                          {rec}
-                        </li>
+                        <div key={index} className="flex items-start bg-green-50 p-3 rounded-lg">
+                          <div className="bg-green-100 p-1 rounded-full mt-0.5 mr-3">
+                            <FaRegCheckCircle className="text-green-500 text-xs" />
+                          </div>
+                          <p className="text-sm text-gray-700">{rec}</p>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   </div>
-                </div>
 
-                <div className="text-sm text-gray-500 mt-4">
-                  <p>
-                    <strong>Note:</strong> This prediction is based on the provided
-                    inputs and historical data. Actual yields may vary based on
-                    weather conditions and farm management practices.
-                  </p>
+                  {/* Disclaimer */}
+                  <div className="text-xs text-gray-500 mt-6 p-3 bg-gray-50 rounded-lg">
+                    <p>
+                      <strong>Note:</strong> This prediction is based on the provided
+                      inputs and historical data. Actual yields may vary based on
+                      weather conditions and farm management practices.
+                    </p>
+                  </div>
+
+                  {/* Back to Form Button */}
+                  <button
+                    onClick={() => setActiveTab("form")}
+                    className="w-full mt-4 bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Adjust Parameters
+                  </button>
                 </div>
               </div>
-            </FadeInSection>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>

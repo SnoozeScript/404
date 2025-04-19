@@ -8,6 +8,8 @@ import logging
 import json
 import io
 from PIL import Image
+from datetime import datetime, timedelta
+import random
 
 from app.core.multi_agent import Agent, AgentType, Message, coordinator, context_protocol
 from app.core.ai_services import (
@@ -251,18 +253,66 @@ class MarketAnalyzerAgent(Agent):
             )
     
     async def handle_analyze_trends(self, message: Message) -> Optional[Message]:
-        """Analyze market trends for specific crops"""
-        # This would analyze historical data to identify trends
-        # For the hackathon, we'll return a simple message
-        crop = message.content.get("crop", "all crops")
-        
-        return Message(
-            sender=self.agent_type,
-            receiver=message.sender,
-            content={"message": f"Market trend analysis for {crop} is not yet implemented"},
-            message_type="trend_analysis",
-            context=message.context
-        )
+        """Analyze market trends for specific crops (Simulated)"""
+        try:
+            crop = message.content.get("crop", "unknown crop")
+            logger.info(f"Generating simulated trend analysis for: {crop}")
+
+            # Simulate fetching historical data (replace with real data later)
+            # Generate some plausible fake historical prices for the last 30 days
+            today = datetime.now()
+            historical_prices = []
+            base_price = random.randint(1500, 5000) # Base price for the crop
+            for i in range(30, 0, -1):
+                date = (today - timedelta(days=i)).strftime("%Y-%m-%d")
+                # Simulate price fluctuation around the base price with a slight upward trend
+                price_fluctuation = random.uniform(-0.05, 0.07) # +/- 5-7% fluctuation
+                price = base_price * (1 + price_fluctuation + (0.001 * (30-i))) # Slight upward trend factor
+                price = round(price, 2)
+                historical_prices.append({"date": date, "price": price})
+                base_price = price # Next day's price starts from previous day
+
+            # Generate a simple trend summary based on simulated data
+            start_price = historical_prices[0]["price"]
+            end_price = historical_prices[-1]["price"]
+            trend_percentage = ((end_price - start_price) / start_price) * 100
+            
+            if trend_percentage > 5:
+                trend_summary = f"Prices for {crop} have shown a noticeable upward trend over the past month (approx. {trend_percentage:.1f}% increase)."
+            elif trend_percentage < -5:
+                trend_summary = f"Prices for {crop} have shown a noticeable downward trend over the past month (approx. {trend_percentage:.1f}% decrease)."
+            else:
+                trend_summary = f"Prices for {crop} have remained relatively stable over the past month (change of {trend_percentage:.1f}%)."
+
+            # Store result in context if needed
+            context_id = message.context.get("session_id") if message.context else None
+            if context_id:
+                context_protocol.update_context(context_id, {
+                    f"trend_analysis_{crop}": {
+                        "summary": trend_summary,
+                        "historical_data": historical_prices # Include historical data for potential future use (e.g., charting)
+                    }
+                })
+
+            return Message(
+                sender=self.agent_type,
+                receiver=message.sender,
+                content={
+                    "message": trend_summary, 
+                    "historical_data": historical_prices # Optionally return historical data too
+                },
+                message_type="trend_analysis_result",
+                context=message.context
+            )
+
+        except Exception as e:
+            logger.error(f"Error generating simulated trends for {crop}: {e}")
+            return Message(
+                sender=self.agent_type,
+                receiver=message.sender,
+                content={"error": f"Error analyzing trends for {crop}: {str(e)}"},
+                message_type="error"
+            )
     
     async def handle_get_summary(self, message: Message) -> Optional[Message]:
         """Get a summary of current market conditions"""

@@ -140,7 +140,11 @@ async def get_market_trends(crop: str):
             error = message.content.get("error", "Unknown error analyzing trends") if message else "No response from market agent"
             raise HTTPException(status_code=500, detail=error)
             
-        return {"trend": message.content.get("message", "No trend data available")}
+        # Return both the trend message and the historical data
+        return {
+            "message": message.content.get("message", "No trend data available"),
+            "historical_data": message.content.get("historical_data", [])
+        }
         
     except Exception as e:
         print(f"Error analyzing market trends: {e}")

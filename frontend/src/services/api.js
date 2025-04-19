@@ -51,12 +51,12 @@ export const detectDiseaseApi = async (imageFile) => {
 
 /**
  * Yield Prediction API
- * @param {object} yieldData { crop_type, area, region, soil, weather }
+ * @param {object} yieldData { crop, area, season, state, annual_rainfall, fertilizer, pesticide, ph, n, p, k, organic_carbon }
  * @returns {Promise<object>} Backend response
  */
 export const predictYieldApi = async (yieldData) => {
   try {
-    const response = await apiClient.post('/predict', yieldData);
+    const response = await apiClient.post('/yield/predict', yieldData);
     return response.data;
   } catch (error) {
     if (error.response) {

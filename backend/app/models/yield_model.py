@@ -1,16 +1,43 @@
-from pydantic import BaseModel
-from typing import Optional # Use Optional for fields that might not be provided
+from pydantic import BaseModel, Field
+from typing import Optional, List, Dict
 
 class YieldInput(BaseModel):
-    crop_type: str
-    area: str # Could be like "2 acres" or "5 hectares"
-    region: str # e.g., "Near Baramati MIDC", "Village Name"
-    soil: Optional[str] = None # e.g., "Medium black", "Loamy"
-    weather: Optional[str] = None # e.g., "Good monsoon predicted", "Recent heavy rain"
+    crop: str
+    area: float
+    season: str
+    state: str
+    annual_rainfall: float
+    fertilizer: float
+    pesticide: float
+    ph: float
+    n: float  # Nitrogen
+    p: float  # Phosphorus
+    k: float  # Potassium
+    organic_carbon: float
+    
+    # Location data
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    location_name: Optional[str] = None
+    
+    # Legacy fields for backward compatibility
+    crop_type: Optional[str] = None
+    region: Optional[str] = None
+    soil: Optional[str] = None
+    weather: Optional[str] = None
+
+class WeatherData(BaseModel):
+    current_temp: float
+    current_humidity: float
+    current_conditions: str
+    monthly_rainfall_estimate: float
 
 class YieldPredictionResponse(BaseModel):
-    prediction_text: str
-    # Potential future structured fields:
-    # estimated_range_low: Optional[float] = None
-    # estimated_range_high: Optional[float] = None
-    # unit: Optional[str] = None # e.g., "quintals", "tonnes per acre"
+    success: bool = True
+    yield_: float = Field(alias="yield")  # Using alias because 'yield' is a Python keyword
+    estimated_production: float
+    recommendations: List[str]
+    weather_data: Optional[Dict] = None
+    
+    class Config:
+        populate_by_name = True  # Allow populating model using both alias and field name

@@ -1,4 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
+// TTS/STT browser support check
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+const synth = window.speechSynthesis || null;
 import { chatAssistantApi, multilingualChatApi } from '../../services/api';
 import { 
   FaPaperPlane, 
@@ -10,7 +13,9 @@ import {
   FaShareAlt,
   FaMapMarkerAlt,
   FaInfoCircle,
-  FaGlobe
+  FaGlobe,
+  FaMicrophone, 
+  FaStopCircle
 } from "react-icons/fa";
 import { GiWheat, GiFarmTractor } from "react-icons/gi";
 import { MdOutlineScience, MdOutlineWaterDrop } from "react-icons/md";
@@ -105,6 +110,141 @@ const Tooltip = ({ content }) => {
 };
 
 function ChatAssistant() {
+  // TTS (Text-to-Speech) state
+  const [ttsEnabled, setTtsEnabled] = useState(true);
+  // STT (Speech-to-Text) mode: 'browser' (Web Speech API) or 'upload' (record & send)
+  const [sttMode, setSttMode] = useState(SpeechRecognition ? 'browser' : 'upload');
+  const [recognitionActive, setRecognitionActive] = useState(false);
+  const recognitionRef = useRef(null);
+  const [recording, setRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const [audioChunks, setAudioChunks] = useState([]);
+  const [audioUrl, setAudioUrl] = useState(null);
+  const audioPlayerRef = useRef(null);
+
+  // Start recording audio
+  const handleStartRecording = async () => {
+    setError("");
+    setAudioUrl(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new window.MediaRecorder(stream);
+      setMediaRecorder(recorder);
+      setAudioChunks([]);
+      recorder.start();
+      setRecording(true);
+      recorder.ondataavailable = (e) => {
+        setAudioChunks((prev) => [...prev, e.data]);
+      };
+      recorder.onstop = async () => {
+        setRecording(false);
+        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        await handleSendAudio(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+    } catch {
+      setError("🎤 Microphone access denied or unavailable.");
+    }
+  };
+
+  // Stop recording
+  const handleStopRecording = () => {
+    if (mediaRecorder) {
+      mediaRecorder.stop();
+      setMediaRecorder(null);
+    }
+  };
+
+  // Send audio to backend and play response
+  const handleSendAudio = async (audioBlob) => {
+    setLoading(true);
+    setError("");
+    try {
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'input.wav');
+      formData.append('language', selectedLanguage);
+      const response = await fetch('/api/chat/speech-chat', {
+        method: 'POST',
+        body: formData
+      });
+      if (!response.ok) throw new Error('Speech chat failed.');
+      const data = await response.json();
+      // Instead of sending, set transcript to input box for user review
+      setInput(data.user_transcript);
+      if (sttMode === 'upload' && ttsEnabled && data.ai_response) {
+        speakText(data.ai_response);
+      }
+      // Optionally, you can auto-focus the input box here if desired
+      // The user will now review/edit and press Send to trigger AI response
+      // (Do not send to AI or update messages here)
+    } catch {
+      setError("Failed to get audio reply from AI.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // TTS: Speak text using browser API
+  function speakText(text) {
+    if (!synth || !ttsEnabled) return;
+    synth.cancel(); // stop any previous
+    const utter = new window.SpeechSynthesisUtterance(text);
+    utter.lang = selectedLanguage === 'en' ? 'en-US' : selectedLanguage;
+    utter.rate = 1.05;
+    synth.speak(utter);
+  }
+
+  // STT: Start browser speech recognition
+  const handleStartRecognition = () => {
+    if (!SpeechRecognition) return;
+    setRecognitionActive(true);
+    const recognition = new SpeechRecognition();
+    recognition.lang = selectedLanguage === 'en' ? 'en-US' : selectedLanguage;
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    recognitionRef.current = recognition;
+    recognition.onresult = (event) => {
+      let transcript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        transcript += event.results[i][0].transcript;
+      }
+      setInput(transcript);
+      if (event.results[event.results.length - 1].isFinal) {
+        setRecognitionActive(false);
+        recognition.stop();
+        // Optionally auto-send:
+        // handleSend({ preventDefault: () => {} });
+      }
+    };
+    recognition.onerror = () => setRecognitionActive(false);
+    recognition.onend = () => setRecognitionActive(false);
+    recognition.start();
+  };
+
+  // STT: Stop browser speech recognition
+  const handleStopRecognition = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      setRecognitionActive(false);
+    }
+  };
+
+  // Helper to convert base64 to Blob
+  function b64toBlob(b64Data, contentType = '', sliceSize = 512) {
+    const byteCharacters = atob(b64Data);
+    const byteArrays = [];
+    for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+      const slice = byteCharacters.slice(offset, offset + sliceSize);
+      const byteNumbers = new Array(slice.length);
+      for (let i = 0; i < slice.length; i++) {
+        byteNumbers[i] = slice.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      byteArrays.push(byteArray);
+    }
+    return new Blob(byteArrays, { type: contentType });
+  }
+
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([
     {
@@ -147,6 +287,10 @@ function ChatAssistant() {
   const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
+    if (recognitionActive && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setRecognitionActive(false);
+    }
     
     setError("");
     setLoading(true);
@@ -179,18 +323,15 @@ function ChatAssistant() {
         
         setMessages([...newMessages, { role: "assistant", content: data.response || "(No response)" }]);
       }
-    } catch (err) {
-      let errorMsg = err.message;
-      if (errorMsg && errorMsg.includes('429')) {
-        errorMsg = `🚫 <b>API quota exceeded.</b>\nYou've hit the usage limit for your AI plan.\n\n<b>What you can do:</b>\n- Wait a few minutes and try again.\n- Check your API billing and quota settings.\n- Contact your admin if the issue persists.\n\n<small>(Error code: 429)</small>`;
-      }
+    } catch {
+      let errorMsg = "An error occurred.";
       
       setMessages([
         ...newMessages,
         {
           role: "error",
           content: errorMsg,
-          retry: errorMsg.includes('429')
+          retry: false
         }
       ]);
       
@@ -489,34 +630,34 @@ function ChatAssistant() {
                         children={msg.content}
                         remarkPlugins={[remarkGfm]}
                         components={{
-                          a: ({node, ...props}) => (
+                          a: (props) => (
                             <a {...props} target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:text-amber-700 underline" />
                           ),
-                          code: ({node, ...props}) => (
+                          code: (props) => (
                             <code {...props} className="bg-amber-50 text-amber-800 rounded px-1 py-0.5 text-sm" />
                           ),
-                          pre: ({node, ...props}) => (
+                          pre: (props) => (
                             <pre {...props} className="bg-gray-50 rounded-md p-3 text-sm overflow-x-auto my-2" />
                           ),
-                          ul: ({node, ...props}) => (
+                          ul: (props) => (
                             <ul {...props} className="list-disc pl-5 space-y-1 my-2" />
                           ),
-                          ol: ({node, ...props}) => (
+                          ol: (props) => (
                             <ol {...props} className="list-decimal pl-5 space-y-1 my-2" />
                           ),
-                          li: ({node, ...props}) => (
+                          li: (props) => (
                             <li {...props} className="ml-2" />
                           ),
-                          p: ({node, ...props}) => (
+                          p: (props) => (
                             <p {...props} className="mb-2 last:mb-0" />
                           ),
-                          h1: ({node, ...props}) => (
+                          h1: (props) => (
                             <h1 {...props} className="text-lg font-bold mb-2" />
                           ),
-                          h2: ({node, ...props}) => (
+                          h2: (props) => (
                             <h2 {...props} className="text-md font-bold mb-2" />
                           ),
-                          h3: ({node, ...props}) => (
+                          h3: (props) => (
                             <h3 {...props} className="text-base font-bold mb-1" />
                           ),
                         }}
@@ -538,45 +679,90 @@ function ChatAssistant() {
                   </div>
                 </FadeInSection>
               ))}
+            </div>
               <div ref={chatEndRef} />
             </div>
 
             {/* Input Area */}
-            <div className="relative z-10">
-              <form onSubmit={handleSend} className="flex space-x-2">
-                <input
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask about crops, weather, markets or farming techniques..."
-                  className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 hover:border-amber-300 text-sm"
-                  disabled={loading}
-                  autoFocus
-                />
+             <div className="chat-footer flex items-center gap-3 bg-white/90 rounded-xl shadow-md px-4 py-3 mt-3 sticky bottom-0 z-20">
+               {/* TTS Toggle */}
+               <button
+                 className={`px-2 py-1 rounded-full border text-xs font-semibold mr-2 ${ttsEnabled ? 'bg-green-200 border-green-400 text-green-700' : 'bg-gray-100 border-gray-300 text-gray-500'}`}
+                 onClick={() => setTtsEnabled(v => !v)}
+                 title={ttsEnabled ? 'Voice answers ON' : 'Voice answers OFF'}
+                 aria-label="Toggle voice answers"
+               >
+                 {ttsEnabled ? '🔊 Voice ON' : '🔇 Voice OFF'}
+               </button>
+               {/* STT Mode Toggle (if browser supports) */}
+               {SpeechRecognition && (
+                 <button
+                   className={`px-2 py-1 rounded-full border text-xs font-semibold mr-2 ${sttMode === 'browser' ? 'bg-blue-200 border-blue-400 text-blue-700' : 'bg-gray-100 border-gray-300 text-gray-500'}`}
+                   onClick={() => setSttMode(m => m === 'browser' ? 'upload' : 'browser')}
+                   title={sttMode === 'browser' ? 'Speech-to-text: Live' : 'Speech-to-text: Upload'}
+                   aria-label="Toggle speech-to-text mode"
+                 >
+                   {sttMode === 'browser' ? '🎙️ Live STT' : '⬆️ Upload STT'}
+                 </button>
+               )}
+
+              <input
+                type="text"
+                className="input-box flex-1 px-4 py-2 rounded-lg border border-green-200 focus:border-green-400 focus:ring-2 focus:ring-green-100 text-base"
+                placeholder="Type your message..."
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSend(e)}
+                disabled={loading}
+                style={{ minWidth: 0 }}
+              />
+              <button
+                className="send-btn flex items-center justify-center px-4 py-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-400 text-white font-semibold shadow hover:from-green-600 hover:to-emerald-600 transition"
+                onClick={handleSend}
+                disabled={loading || !input.trim()}
+                aria-label="Send"
+              >
+                {loading ? <FaSpinner className="animate-spin" /> : <FaPaperPlane />}
+              </button>
+              {/* Speech input button: browser STT or fallback to upload */}
+              {sttMode === 'browser' && SpeechRecognition ? (
                 <button
-                  type="submit"
-                  disabled={loading || !input.trim()}
-                  className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white px-5 py-3 rounded-lg flex items-center justify-center transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className={`send-btn flex items-center justify-center px-4 py-2 rounded-lg font-semibold shadow transition ${recognitionActive ? 'bg-blue-500 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
+                  onClick={recognitionActive ? handleStopRecognition : handleStartRecognition}
+                  disabled={loading}
+                  aria-label={recognitionActive ? "Stop speech recognition" : "Start speech recognition"}
                 >
-                  {loading ? (
-                    <>
-                      <FaSpinner className="animate-spin mr-2" /> Sending...
-                    </>
-                  ) : (
-                    <>
-                      <FaPaperPlane className="mr-2" /> Send
-                    </>
-                  )}
+                  {recognitionActive ? <FaStopCircle /> : <FaMicrophone />}
                 </button>
-              </form>
-              {error && (
-                <div className="bg-red-50 border-l-4 border-red-500 p-4 mt-4 rounded-r-lg shadow-sm flex items-start">
-                  <div className="text-red-500 mr-3 text-lg">⚠️</div>
-                  <div className="text-sm text-red-700" dangerouslySetInnerHTML={{ __html: error }} />
-                </div>
+              ) : (
+                <button
+                  className={`send-btn flex items-center justify-center px-4 py-2 rounded-lg font-semibold shadow transition ${recording ? 'bg-red-500 text-white' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
+                  onClick={recording ? handleStopRecording : handleStartRecording}
+                  disabled={loading}
+                  aria-label={recording ? "Stop recording" : "Start recording"}
+                >
+                  {recording ? <FaStopCircle /> : <FaMicrophone />}
+                </button>
+              )}
+              {audioUrl && (
+                <audio ref={audioPlayerRef} src={audioUrl} controls style={{ marginLeft: 8, height: 36 }} />
               )}
             </div>
-          </div>
+
+            {/* Error message - prominent and spaced */}
+            {error && (
+              <div className="bg-red-50 border-l-4 border-red-500 p-4 mt-6 rounded-lg shadow flex items-start max-w-lg mx-auto">
+                <div className="text-red-500 mr-3 text-lg">⚠️</div>
+                <div className="text-sm text-red-700" dangerouslySetInnerHTML={{ __html: error }} />
+              </div>
+            )}
+             {error && (
+               <div className="bg-red-50 border-l-4 border-red-500 p-4 mt-6 rounded-lg shadow flex items-start max-w-lg mx-auto">
+                 <div className="text-red-500 mr-3 text-lg">⚠️</div>
+                 <div className="text-sm text-red-700" dangerouslySetInnerHTML={{ __html: error }} />
+               </div>
+             )}
+
         </FadeInSection>
       </div>
 

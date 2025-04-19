@@ -2,10 +2,15 @@
 Chat assistant API endpoints for FarmGenius
 This module provides endpoints for interacting with the general-purpose AI chat assistant.
 """
-from fastapi import APIRouter, HTTPException, Depends, Body
+from fastapi import APIRouter, HTTPException, Depends, Body, File, UploadFile
+from fastapi.responses import StreamingResponse, FileResponse
+import io
+import tempfile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
+import speech_recognition as sr
+from gtts import gTTS
 import uuid
 import asyncio
 import json
@@ -32,6 +37,111 @@ class ChatResponse(BaseModel):
 class StreamChatInput(ChatInput):
     """Model for streaming chat input, extending ChatInput"""
     pass
+
+@router.post("/speech-to-text")
+async def speech_to_text(file: UploadFile = File(...)):
+    """
+    Convert uploaded speech audio to text using SpeechRecognition.
+    Accepts WAV or MP3 files.
+    """
+    recognizer = sr.Recognizer()
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio:
+        temp_audio.write(await file.read())
+        temp_audio.flush()
+        with sr.AudioFile(temp_audio.name) as source:
+            audio = recognizer.record(source)
+            try:
+                text = recognizer.recognize_google(audio)
+                return {"text": text}
+            except sr.UnknownValueError:
+                raise HTTPException(status_code=400, detail="Could not understand audio.")
+            except sr.RequestError as e:
+                raise HTTPException(status_code=500, detail=f"STT service error: {e}")
+
+@router.post("/text-to-speech")
+async def text_to_speech(text: str = Body(..., embed=True), language: str = Body("en", embed=True)):
+    """
+    Convert text to speech audio using gTTS and return as an MP3 stream.
+    """
+    try:
+        tts = gTTS(text=text, lang=language)
+        mp3_fp = io.BytesIO()
+        tts.write_to_fp(mp3_fp)
+        mp3_fp.seek(0)
+        return StreamingResponse(mp3_fp, media_type="audio/mpeg")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"TTS error: {e}")
+
+from google.cloud import speech, texttospeech
+import base64
+import os
+
+@router.post("/stt")
+async def stt(file: UploadFile = File(...), language: str = Body("en-US", embed=True)):
+    """
+    Accepts an audio file and returns the transcript using Google Cloud Speech-to-Text.
+    """
+    client = speech.SpeechClient()
+    audio_content = await file.read()
+    audio = speech.RecognitionAudio(content=audio_content)
+    config = speech.RecognitionConfig(
+        encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+        language_code=language,
+        audio_channel_count=1,
+        enable_automatic_punctuation=True
+    )
+    response = client.recognize(config=config, audio=audio)
+    transcript = " ".join([result.alternatives[0].transcript for result in response.results])
+    if not transcript:
+        raise HTTPException(status_code=400, detail="Could not transcribe audio.")
+    return {"transcript": transcript}
+
+@router.post("/speech-chat")
+async def speech_chat(file: UploadFile = File(...), language: str = Body("en-US", embed=True)):
+    """
+    Accepts an audio file, transcribes it with Google Cloud STT, sends to chat AI, and returns the response as audio and text using Google Cloud TTS.
+    """
+    client_stt = speech.SpeechClient()
+    audio_content = await file.read()
+    audio = speech.RecognitionAudio(content=audio_content)
+    config = speech.RecognitionConfig(
+        encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+        language_code=language,
+        audio_channel_count=1,
+        enable_automatic_punctuation=True
+    )
+    response = client_stt.recognize(config=config, audio=audio)
+    text = " ".join([result.alternatives[0].transcript for result in response.results])
+    if not text:
+        raise HTTPException(status_code=400, detail="Could not transcribe audio.")
+
+    chat_input = ChatInput(message=text, language=language)
+    chat_response = await chat_message(chat_input)
+    ai_text = chat_response.response
+
+    # Google Cloud TTS
+    tts_client = texttospeech.TextToSpeechClient()
+    synthesis_input = texttospeech.SynthesisInput(text=ai_text)
+    voice = texttospeech.VoiceSelectionParams(
+        language_code=language,
+        ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
+    )
+    audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3)
+    tts_response = tts_client.synthesize_speech(
+        input=synthesis_input, voice=voice, audio_config=audio_config
+    )
+    audio_base64 = base64.b64encode(tts_response.audio_content).decode("utf-8")
+    return {
+        "user_transcript": text,
+        "ai_text": ai_text,
+        "ai_audio_base64": audio_base64
+    }
+
+# ---
+# ENVIRONMENT SETUP REQUIRED:
+# - Set GOOGLE_APPLICATION_CREDENTIALS to your Google Cloud service account JSON key file.
+# - Enable Google Cloud Speech-to-Text and Text-to-Speech APIs in your project.
+# ---
 
 @router.post("/message", response_model=ChatResponse, status_code=200)
 async def chat_message(chat_input: ChatInput = Body(...)):

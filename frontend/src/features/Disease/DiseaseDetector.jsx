@@ -11,6 +11,7 @@ import {
 } from "react-icons/fa";
 import { MdOutlineHealthAndSafety } from "react-icons/md";
 import { GiWheat } from "react-icons/gi";
+import { motion } from "framer-motion";
 
 // Fade in component for animation
 const FadeInSection = ({ children, delay = 0 }) => {

@@ -176,8 +176,11 @@ npm run dev
 - Data is cached and aggregated for fast, reliable access.
 
 ### AI Chat Assistant
-- User asks any farming question.
-- Gemini-powered agent answers with India-specific, context-aware info.
+- Seamlessly integrated into the platform with a modern, responsive chat UI (matching the overall design system).
+- Powered by Gemini 1.5 Pro for natural, conversational, and context-aware responses.
+- Supports Markdown formatting, streaming replies, and sharing of conversations.
+- Understands context from other features (e.g., yield, market, disease) for truly smart, multi-turn assistance.
+- Designed specifically for Indian agriculture: covers all major crops, regions, and agri practices.
 
 ### Multi-Agent System
 - Backend is built to allow easy addition of more AI/ML agents and features.

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Micro Farm Maximizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #388e3c;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .container {
+            display: flex;
+            gap: 30px;
+        }
+        .form-container {
+            flex: 1;
+            background-color: #f1f8e9;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .results-container {
+            flex: 1.5;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #388e3c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #2e7d32;
+        }
+        .recommendation-card {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .recommendation-card h3 {
+            margin-top: 0;
+            color: #388e3c;
+        }
+        .recommendation-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .detail-item {
+            flex: 1;
+            min-width: 200px;
+        }
+        .detail-label {
+            font-weight: bold;
+            color: #666;
+        }
+        .compatibility-score {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            background-color: #c8e6c9;
+            color: #388e3c;
+            font-weight: bold;
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #388e3c;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 2s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <h1>Micro Farm Maximizer</h1>
+    
+    <div class="container">
+        <div class="form-container">
+            <h2>Your Farm Profile</h2>
+            <form id="recommend-form">
+                <div class="form-group">
+                    <label for="plot_size">Plot Size (sq ft):</label>
+                    <input type="number" id="plot_size" name="plot_size" value="200" required>
+                </div>
+                <div class="form-group">
+                    <label for="budget">Budget (₹):</label>
+                    <input type="number" id="budget" name="budget" value="50000" required>
+                </div>
+                <div class="form-group">
+                    <label for="state">State:</label>
+                    <select id="state" name="state">
+                        <option value="Maharashtra" selected>Maharashtra</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="district">District:</label>
+                    <select id="district" name="district">
+                        <option value="Kolhapur">Kolhapur</option>
+                        <option value="Pune">Pune</option>
+                        <option value="Satara">Satara</option>
+                        <option value="Sangli">Sangli</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="soil_type">Soil Type:</label>
+                    <select id="soil_type" name="soil_type">
+                        <option value="loam">Loam</option>
+                        <option value="sandy loam">Sandy Loam</option>
+                        <option value="clay loam">Clay Loam</option>
+                        <option value="clay">Clay</option>
+                        <option value="sandy">Sandy</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="soil_ph">Soil pH (if known):</label>
+                    <input type="number" id="soil_ph" name="soil_ph" value="6.5" step="0.1" min="4" max="9">
+                </div>
+                <div class="form-group">
+                    <label for="water_source">Water Source:</label>
+                    <select id="water_source" name="water_source">
+                        <option value="well">Well</option>
+                        <option value="canal">Canal</option>
+                        <option value="rainwater">Rainwater</option>
+                        <option value="municipal">Municipal</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="sunlight_hours">Sunlight Hours (per day):</label>
+                    <input type="number" id="sunlight_hours" name="sunlight_hours" value="6" min="0" max="12">
+                </div>
+                <div class="form-group">
+                    <label for="preferred_crops">Preferred Crops:</label>
+                    <input type="text" id="preferred_crops" name="preferred_crops" placeholder="Tomatoes, Lettuce, etc.">
+                </div>
+                <div class="form-group">
+                    <label for="risk_appetite">Risk Appetite (1-10):</label>
+                    <input type="range" id="risk_appetite" name="risk_appetite" min="1" max="10" value="5">
+                </div>
+                <div class="form-group">
+                    <label for="labor_availability">Labor Availability (1-10):</label>
+                    <input type="range" id="labor_availability" name="labor_availability" min="1" max="10" value="5">
+                </div>
+                <button type="submit">Get Recommendations</button>
+            </form>
+        </div>
+        
+        <div class="results-container">
+            <h2>Farm System Recommendations</h2>
+            <div id="loader" class="loader"></div>
+            <div id="error-message" style="color: red; display: none;"></div>
+            <div id="recommendations">
+                <p>Fill out your farm profile and click 'Get Recommendations' to see which micro-farming systems are best for your plot.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('recommend-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('recommendations').innerHTML = '';
+            document.getElementById('error-message').style.display = 'none';
+
+            const formData = {
+                plot_size: Number(document.getElementById('plot_size').value),
+                budget: Number(document.getElementById('budget').value),
+                state: document.getElementById('state').value,
+                district: document.getElementById('district').value,
+                soil_type: document.getElementById('soil_type').value,
+                soil_ph: Number(document.getElementById('soil_ph').value),
+                water_source: document.getElementById('water_source').value,
+                sunlight_hours: Number(document.getElementById('sunlight_hours').value),
+                preferred_crops: document.getElementById('preferred_crops').value.split(',').map(c => c.trim()).filter(Boolean),
+                risk_appetite: Number(document.getElementById('risk_appetite').value),
+                labor_availability: Number(document.getElementById('labor_availability').value)
+            };
+
+            try {
+                const response = await fetch('http://localhost:8000/recommend', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+                document.getElementById('loader').style.display = 'none';
+                const recommendationsDiv = document.getElementById('recommendations');
+
+                if (data.success && data.recommendations.length > 0) {
+                    let html = `<div class="message">${data.message}</div>`;
+                    data.recommendations.forEach((rec) => {
+                        html += `
+                            <div class="recommendation-card">
+                                <h3>${rec.system} <span class="compatibility-score">Compatibility: ${rec.compatibility_score}%</span></h3>
+                                <div class="recommendation-details">
+                                    <div class="detail-item"><div class="detail-label">Setup Cost:</div>₹${rec.setup_cost_total?.toLocaleString() || '-'}</div>
+                                    <div class="detail-item"><div class="detail-label">Monthly Cost:</div>₹${rec.monthly_cost?.toLocaleString() || '-'}</div>
+                                    <div class="detail-item"><div class="detail-label">Expected ROI:</div>${rec.expected_roi_percent?.toLocaleString() || '-'}%</div>
+                                    <div class="detail-item"><div class="detail-label">Payback Period:</div>${rec.payback_period_months || '-'} months</div>
+                                    <div class="detail-item"><div class="detail-label">Water Usage:</div>${rec.water_usage_per_day || '-'} L/day</div>
+                                    <div class="detail-item"><div class="detail-label">Electricity Usage:</div>${rec.electricity_usage_per_day || '-'} kWh/day</div>
+                                    <div class="detail-item"><div class="detail-label">Suitable Crops:</div>${rec.suitable_crops?.join(', ') || '-'}</div>
+                                    <div class="detail-item"><div class="detail-label">Market Prices (Nearby Mandis):</div>
+                                        <ul>
+                                            ${(rec.market_prices && rec.market_prices.length) ? 
+                                                rec.market_prices.map(mp => 
+                                                    `<li>${mp.location} (${mp.date}): ₹${Number(mp.price_per_quintal).toLocaleString()}</li>`
+                                                ).join('') : '<li>-</li>'}
+                                        </ul>
+                                    </div>
+                                    <div class="detail-item"><div class="detail-label">Government Subsidies:</div>
+                                        <ul>
+                                            ${(rec.subsidies && rec.subsidies.length) ? 
+                                                rec.subsidies.map(s => 
+                                                    `<li><strong>${s.name}</strong> (${s.subsidy_pct || ''}%)
+                                                        ${s.max_cap ? ', Cap: ₹' + Number(s.max_cap).toLocaleString() : ''}
+                                                        ${s.apply_url ? ' <a href="'+s.apply_url+'" target="_blank">Apply</a>' : ''}
+                                                        ${s.eligibility ? '<br/>' + s.eligibility : ''}
+                                                    </li>`
+                                                ).join('') : '<li>-</li>'}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>`;
+                    });
+                    recommendationsDiv.innerHTML = html;
+                } else {
+                    recommendationsDiv.innerHTML = `<p>${data.message || 'No suitable systems found for your inputs.'}</p>`;
+                }
+            } catch (err) {
+                console.error('Error:', err);
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('error-message').textContent = 'Failed to fetch recommendations. Please try again.';
+                document.getElementById('error-message').style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

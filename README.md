@@ -1,22 +1,199 @@
-# FarmGenius: AI-powered Agriculture Assistant
+# FarmGenius
 
-## Table of Contents
-- [Overview](#overview)
-- [Features](#features)
-- [Architecture](#architecture)
-- [Setup & Installation](#setup--installation)
-- [Usage](#usage)
-- [API Endpoints](#api-endpoints)
-- [Tech Stack](#tech-stack)
-- [How it Works](#how-it-works)
-- [Team & Acknowledgements](#team--acknowledgements)
+> **Empowering Indian agriculture with AI, real-time data, and a beautiful user experience.**
 
 ---
 
-## Overview
-FarmGenius is an AI-powered platform designed to empower Indian farmers with actionable insights. It provides crop yield prediction, disease detection, real-time market prices, and an AI chat assistant for agricultural queries. Built for hackathons and real-world impact, FarmGenius leverages modern AI, robust data scraping, and a multi-agent backend to deliver a seamless, mobile-friendly experience.
+## 🚀 Overview
+FarmGenius is an advanced, multi-agent agricultural assistant designed for Indian farmers, agri-entrepreneurs, and researchers. It combines AI-driven chat, real-time yield prediction, market price forecasting, and disease diagnosis in a unified, modern platform.
+
+- **AI Chat Assistant**: Nationwide agricultural expertise powered by Gemini LLMs
+- **Market Price Prediction**: Real-time and historical mandi prices, time series forecasting
+- **Yield Prediction**: Weather-aware, map-based, ML-driven yield estimates
+- **Disease Diagnosis**: Crop image upload and instant disease detection
+- **Professional UI/UX**: Responsive, modern design
 
 ---
+
+## ✨ Features
+- **Multi-Agent Chat**: Conversational assistant with intent routing and context memory
+- **Market Data**: AgMarkNet scraping, static fallback, and forecasting
+- **Yield Prediction**: Google Maps farm selection, OpenWeather integration, ML models
+- **Disease Detection**: Deep learning or Gemini Vision analysis of crop images
+- **Nationwide Coverage**: All major crops, markets, and Indian states
+- **Modern UI**: Shareable conversations, streaming responses, mobile-first
+
+---
+
+## 🛠️ Tech Stack
+
+**Backend:**
+- Python, FastAPI
+- Multi-agent system (Gemini LLM integration)
+- Web scraping (AgMarkNet)
+- ML models: yield, disease
+- Caching, static data fallback
+
+**Frontend:**
+- React (Vite)
+- Modular feature structure
+- Google Maps JS API, OpenWeather API
+- Modern CSS Modules, context/hooks
+
+---
+
+## 📁 Project Structure
+
+```plaintext
+404/
+├── backend/
+│   ├── app/
+│   │   ├── api/                 # FastAPI endpoints (market, yield, disease, chat)
+│   │   ├── core/                # Multi-agent logic, AI services, config
+│   │   ├── data/                # Static/fallback data
+│   │   ├── models/              # Data models
+│   │   ├── services/            # Scrapers, ML services
+│   │   └── main.py              # FastAPI app entry point
+│   ├── requirements.txt
+│   └── .env
+├── frontend/
+│   ├── src/
+│   │   ├── features/
+│   │   │   ├── chat/            # Chat UI, avatars, animation
+│   │   │   ├── market/          # Market price prediction UI
+│   │   │   ├── yield/           # Yield prediction with map/weather
+│   │   ├── components/          # Shared components
+│   │   ├── services/            # API calls
+│   │   └── theme/               # Theme (dark/light mode)
+│   ├── public/
+│   ├── package.json
+│   └── .env
+└── README.md
+```
+
+---
+
+## 🏗️ Architecture
+
+### System Overview
+
+```mermaid
+flowchart TD
+    subgraph Frontend [React Frontend]
+        ChatUI[Chat Assistant UI]
+        MarketUI[Market Predictor UI]
+        YieldUI[Yield Predictor UI]
+        DiseaseUI[Disease Diagnosis UI]
+        MapComp[Google Maps Integration]
+        WeatherComp[Weather API Integration]
+    end
+
+    subgraph Backend [FastAPI Backend]
+        APIMain[main.py]
+        MarketEP[Market Endpoints]
+        YieldEP[Yield Endpoints]
+        DiseaseEP[Disease Endpoints]
+        ChatEP[Chat Endpoints]
+        Agents[Multi-Agent System]
+        Scraper[AgMarkNet Scraper]
+        YieldML[Yield ML Model]
+        DiseaseML[Disease ML Model]
+        StaticData[Static Market Data]
+    end
+
+    subgraph External
+        GoogleMaps[Google Maps API]
+        OpenWeather[OpenWeather API]
+        AgMarkNet[AgMarkNet Portal]
+        Gemini[Gemini LLM]
+        EarthEngine[Earth Engine API]
+    end
+
+    ChatUI -->|REST| ChatEP
+    MarketUI -->|REST| MarketEP
+    YieldUI -->|REST| YieldEP
+    DiseaseUI -->|REST| DiseaseEP
+    MapComp --> GoogleMaps
+    WeatherComp --> OpenWeather
+
+    MarketEP --> Scraper
+    MarketEP --> StaticData
+    YieldEP --> YieldML
+    YieldEP --> WeatherComp
+    YieldEP --> EarthEngine
+    DiseaseEP --> DiseaseML
+    ChatEP --> Agents
+    Agents --> Gemini
+    Scraper --> AgMarkNet
+```
+
+---
+
+## 🖼️ Wireframes
+
+### Home/Dashboard
+- **Header**: Logo, navigation (Chat, Market, Yield, Disease), dark/light toggle
+- **Main**: Quick links to features, latest market/yield highlights, user tips
+
+### Chat Assistant
+- **Left**: Conversation history, agent avatars
+- **Center**: Chat window (Markdown, streaming), input box, send button
+- **Right**: Contextual tips, share conversation
+
+### Market Predictor
+- **Top**: Select commodity, state, market
+- **Main**: Price chart (historical & predicted), market info, refresh button
+- **Side**: Data source info, last updated
+
+### Yield Predictor
+- **Map Panel**: Google Maps with farm selection
+- **Form**: Crop, season, acreage, weather (auto-filled)
+- **Output**: Predicted yield, recommendations
+
+### Disease Diagnosis
+- **Upload**: Image upload box
+- **Result**: Detected disease, advice, treatment suggestions
+
+---
+
+## ⚡ Setup & Installation
+
+### Backend
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+pip install -r requirements.txt
+cp .env.example .env  # Add your API keys
+uvicorn app.main:app --reload
+```
+
+### Frontend
+```bash
+cd frontend
+npm install
+cp .env.example .env  # Add your API keys
+npm run dev
+```
+
+---
+
+## ▶️ Usage
+- Open `http://localhost:5173` for the frontend.
+- Interact with chat, market, yield, and disease features.
+- Backend runs on `http://localhost:8000` by default.
+
+---
+
+---
+
+## 💡 Acknowledgements
+- AgMarkNet, OpenWeather, Google Maps, Gemini LLM
+- Built for hackathons and real-world agricultural impact
+
+---
+
+> For questions or demo requests, open an issue or contact the maintainers.
 
 ## 🧠 How FarmGenius Works: Advanced Architecture & Intelligence
 
@@ -188,7 +365,7 @@ npm run dev
 ---
 
 ## Team & Acknowledgements
-- Built for Hackathons by [Your Team Name Here]
+- Built for Hackathons by 404
 - Special thanks to: FastAPI, React, Google, OpenAI, AgMarkNet, and the open-source community.
 
 ---

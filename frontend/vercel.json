@@ -10,11 +10,6 @@
       "source": "/api/(.*)",
       "destination": "https://four04-2gg4.onrender.com/api/$1",
       "permanent": true
-    },
-    {
-      "source": "/",
-      "destination": "/index.html",
-      "permanent": true
     }
   ]
-} 
+}

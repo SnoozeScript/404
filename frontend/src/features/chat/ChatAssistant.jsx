@@ -678,6 +678,17 @@ function ChatAssistant() {
                           ),
                         }}
                       />
+                      {/* Read Aloud button for AI responses */}
+                      {msg.role === "assistant" && (
+                        <button
+                          className="mt-2 ml-2 px-3 py-1 bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs rounded-md flex items-center transition-colors"
+                          onClick={() => speakText(msg.content)}
+                          aria-label="Read aloud"
+                          title="Read aloud"
+                        >
+                          <FaMicrophone className="mr-1 text-amber-600" /> Read Aloud
+                        </button>
+                      )}
                       {msg.retry && (
                         <button
                           className="mt-3 px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-sm rounded-md flex items-center transition-colors"

@@ -33,7 +33,8 @@ origins = [
     "http://localhost:3000", # Common React dev server port
     "http://127.0.0.1:5173",
     "http://localhost:5182",
-    
+    # Production frontend URL
+    "https://404-snowy.vercel.app",
     # Add other origins if needed (e.g., deployed frontend URL)
 ]
 

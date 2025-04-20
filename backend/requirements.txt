@@ -36,6 +36,7 @@ google-cloud-texttospeech>=2.16.0,<3.0.0   # For TTS endpoint
 gTTS>=2.5.1,<3.0.0                    # For simple TTS (used in /text-to-speech)
 SpeechRecognition>=3.10.0,<4.0.0       # For speech-to-text (used in /speech-to-text)
 PyAudio>=0.2.14,<0.3.0                 # Audio support for SpeechRecognition
+google-cloud-speech
 
 # --- Optional: Better logging ---
 # rich>=13.0.0,<14.0.0             # (Optional) Pretty logging and tracebacks

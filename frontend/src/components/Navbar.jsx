@@ -121,15 +121,6 @@ const Navbar = () => {
                 isTransitioning={isTransitioning}
               />
             </div>
-            <div className="ml-8">
-              <Link
-                to="/login"
-                className="text-green-900 bg-white hover:bg-green-50 px-5 py-2 rounded-lg font-bold shadow-md flex items-center space-x-2 transition-colors duration-300"
-              >
-                <FaUser />
-                <span>Login</span>
-              </Link>
-            </div>
           </div>
 
           {/* Mobile Button with smoother animation */}

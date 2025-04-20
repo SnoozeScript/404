@@ -1,0 +1,259 @@
+{
+  "crops": [
+    {
+      "name": "Lettuce",
+      "optimal_ph_range": {
+        "min": 6.0,
+        "max": 6.8,
+        "ideal": 6.5
+      },
+      "soil_types": [
+        "sandy loam",
+        "loam"
+      ],
+      "amendments": {
+        "if_too_acidic": "Add garden lime or crushed eggshells",
+        "if_too_alkaline": "Add organic matter like composted pine needles"
+      },
+      "system_compatibility": [
+        "hydroponics",
+        "vertical farming",
+        "microgreens"
+      ]
+    },
+    {
+      "name": "Spinach",
+      "optimal_ph_range": {
+        "min": 6.0,
+        "max": 7.5,
+        "ideal": 6.8
+      },
+      "soil_types": [
+        "loam",
+        "sandy loam"
+      ],
+      "amendments": {
+        "if_too_acidic": "Add garden lime",
+        "if_too_alkaline": "Add pine bark or sulfur"
+      },
+      "system_compatibility": [
+        "hydroponics",
+        "vertical farming",
+        "microgreens"
+      ]
+    },
+    {
+      "name": "Basil",
+      "optimal_ph_range": {
+        "min": 5.5,
+        "max": 6.5,
+        "ideal": 6.0
+      },
+      "soil_types": [
+        "loam",
+        "sandy loam"
+      ],
+      "amendments": {
+        "if_too_acidic": "Add garden lime",
+        "if_too_alkaline": "Add organic matter, peat moss"
+      },
+      "system_compatibility": [
+        "hydroponics",
+        "vertical farming",
+        "microgreens",
+        "aeroponics"
+      ]
+    },
+    {
+      "name": "Tomatoes",
+      "optimal_ph_range": {
+        "min": 5.8,
+        "max": 7.0,
+        "ideal": 6.3
+      },
+      "soil_types": [
+        "loam",
+        "sandy loam"
+      ],
+      "amendments": {
+        "if_too_acidic": "Add garden lime or wood ash",
+        "if_too_alkaline": "Add compost, peat moss, or sulfur"
+      },
+      "system_compatibility": [
+        "hydroponics",
+        "vertical farming",
+        "container gardening"
+      ]
+    },
+    {
+      "name": "Strawberries",
+      "optimal_ph_range": {
+        "min": 5.5,
+        "max": 6.5,
+        "ideal": 6.0
+      },
+      "soil_types": [
+        "sandy loam",
+        "loam"
+      ],
+      "amendments": {
+        "if_too_acidic": "Add garden lime",
+        "if_too_alkaline": "Add sulfur or pine bark"
+      },
+      "system_compatibility": [
+        "hydroponics",
+        "vertical farming",
+        "container gardening"
+      ]
+    },
+    {
+      "name": "Mint",
+      "optimal_ph_range": {
+        "min": 6.0,
+        "max": 7.5,
+        "ideal": 7.0
+      },
+      "soil_types": [
+        "loam",
+        "clay loam"
+      ],
+      "amendments": {
+        "if_too_acidic": "Add garden lime",
+        "if_too_alkaline": "Add peat moss or composted oak leaves"
+      },
+      "system_compatibility": [
+        "hydroponics",
+        "vertical farming",
+        "container gardening"
+      ]
+    },
+    {
+      "name": "Bell Peppers",
+      "optimal_ph_range": {
+        "min": 5.8,
+        "max": 6.8,
+        "ideal": 6.3
+      },
+      "soil_types": [
+        "loam",
+        "sandy loam"
+      ],
+      "amendments": {
+        "if_too_acidic": "Add garden lime",
+        "if_too_alkaline": "Add peat moss or sulfur"
+      },
+      "system_compatibility": [
+        "hydroponics",
+        "vertical farming",
+        "container gardening"
+      ]
+    },
+    {
+      "name": "Cilantro",
+      "optimal_ph_range": {
+        "min": 6.2,
+        "max": 6.8,
+        "ideal": 6.5
+      },
+      "soil_types": [
+        "loam",
+        "sandy loam"
+      ],
+      "amendments": {
+        "if_too_acidic": "Add garden lime",
+        "if_too_alkaline": "Add compost or peat moss"
+      },
+      "system_compatibility": [
+        "hydroponics",
+        "vertical farming",
+        "microgreens"
+      ]
+    },
+    {
+      "name": "Microgreens (Mixed)",
+      "optimal_ph_range": {
+        "min": 5.5,
+        "max": 6.5,
+        "ideal": 6.0
+      },
+      "soil_types": [
+        "sandy loam",
+        "growing medium"
+      ],
+      "amendments": {
+        "if_too_acidic": "Use balanced growing medium",
+        "if_too_alkaline": "Use peat-based growing medium"
+      },
+      "system_compatibility": [
+        "microgreens",
+        "shallow trays"
+      ]
+    },
+    {
+      "name": "Kale",
+      "optimal_ph_range": {
+        "min": 6.0,
+        "max": 7.5,
+        "ideal": 6.5
+      },
+      "soil_types": [
+        "loam",
+        "clay loam"
+      ],
+      "amendments": {
+        "if_too_acidic": "Add garden lime",
+        "if_too_alkaline": "Add compost or pine needles"
+      },
+      "system_compatibility": [
+        "hydroponics",
+        "vertical farming",
+        "microgreens",
+        "container gardening"
+      ]
+    }
+  ],
+  "soil_types": {
+    "sandy": {
+      "characteristics": "Drains quickly, warms up faster, low nutrient retention",
+      "suitable_crops": ["Carrots", "Radishes", "Potatoes"],
+      "challenges": "Requires more frequent watering and fertilization"
+    },
+    "clay": {
+      "characteristics": "Holds water, drains slowly, high nutrient retention",
+      "suitable_crops": ["Leafy greens", "Cabbage", "Broccoli"],
+      "challenges": "Can become compacted, may have drainage issues"
+    },
+    "loam": {
+      "characteristics": "Balanced drainage and water retention, fertile",
+      "suitable_crops": ["Most crops", "Tomatoes", "Peppers", "Cucumbers"],
+      "challenges": "Maintaining organic matter content over time"
+    },
+    "sandy loam": {
+      "characteristics": "Good drainage with moderate water retention",
+      "suitable_crops": ["Most vegetables", "Herbs", "Strawberries"],
+      "challenges": "May require additional organic matter"
+    },
+    "clay loam": {
+      "characteristics": "Good nutrient retention with improved drainage",
+      "suitable_crops": ["Leafy greens", "Brassicas", "Beans"],
+      "challenges": "Monitoring moisture levels to prevent waterlogging"
+    },
+    "growing medium": {
+      "characteristics": "Soilless, tailored to crop needs, sterile",
+      "suitable_crops": ["Microgreens", "Hydroponic crops", "Seedlings"],
+      "challenges": "Requires careful nutrient management"
+    }
+  },
+  "ph_adjustment": {
+    "too_acidic": [
+      {"amendment": "Garden lime (calcium carbonate)", "effect": "Raises pH", "application": "1-2 kg per 10 sq.m"},
+      {"amendment": "Wood ash", "effect": "Raises pH and adds potassium", "application": "1 kg per 10 sq.m"},
+      {"amendment": "Dolomite lime", "effect": "Raises pH and adds magnesium", "application": "1 kg per 10 sq.m"}
+    ],
+    "too_alkaline": [
+      {"amendment": "Sulfur", "effect": "Lowers pH slowly", "application": "200-300g per 10 sq.m"},
+      {"amendment": "Pine needles/bark", "effect": "Lowers pH gradually and adds organic matter", "application": "2-3 kg per 10 sq.m"},
+      {"amendment": "Peat moss", "effect": "Lowers pH and improves water retention", "application": "2-3 kg per 10 sq.m"}
+    ]
+  }
+}

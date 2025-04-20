@@ -15,6 +15,7 @@ import VoiceControl from "./features/voice/VoiceControl";
 import YieldPredictor from "./features/yield/YieldPredictor";
 import ChatAssistant from "./features/chat/ChatAssistant";
 import Navbar from "./components/Navbar";
+import Microfarm from "./features/microfarm/Microfarm";
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
           <Route path="/voice" element={<VoiceControl />} />
           <Route path="/yield" element={<YieldPredictor />} />
           <Route path="/chat" element={<ChatAssistant />} />
+          <Route path="/microfarm" element={<Microfarm />} />
         </Routes>
       </Router>
     </ThemeProvider>

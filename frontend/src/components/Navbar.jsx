@@ -62,7 +62,7 @@ const Navbar = () => {
   return (
     <nav
       aria-label="Main Navigation"
-      className={`fixed w-full z-50 transition-all duration-300 font-sans 
+      className={`fixed w-full z-50 transition-all duration-300 font-sans \
         ${scrolled ? "bg-green-800 shadow-lg" : "bg-green-800"}`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -116,6 +116,15 @@ const Navbar = () => {
                 to="/chat"
                 label="AI Chat"
                 icon={<FaRobot />}
+                currentPath={location.pathname}
+                previousPath={previousPath}
+                isTransitioning={isTransitioning}
+              />
+              {/* Micro Farm Link */}
+              <NavLink
+                to="/microfarm"
+                label="Micro Farm"
+                icon={<GiFarmTractor />}
                 currentPath={location.pathname}
                 previousPath={previousPath}
                 isTransitioning={isTransitioning}
@@ -194,6 +203,15 @@ const Navbar = () => {
             to="/chat"
             label="AI Chat"
             icon={<FaRobot />}
+            currentPath={location.pathname}
+            previousPath={previousPath}
+            isTransitioning={isTransitioning}
+          />
+          {/* Mobile Micro Farm Link */}
+          <MobileNavLink
+            to="/microfarm"
+            label="Micro Farm"
+            icon={<GiFarmTractor />}
             currentPath={location.pathname}
             previousPath={previousPath}
             isTransitioning={isTransitioning}
@@ -342,37 +360,11 @@ const MobileNavLink = ({
 
       <style jsx>{`
         @keyframes slide-in {
-          0% {
-            width: 0;
-          }
-          30% {
-            width: 0;
-          } /* Delay the start of the animation */
-          100% {
-            width: 100%;
-          }
+          0% {width:0;} 30% {width:0;} 100% {width:100%;}
         }
-        .animate-slide-in {
-          animation: slide-in 500ms ease-out forwards;
-        }
-
-        @keyframes slide-out {
-          0% {
-            width: 100%;
-            left: 0;
-          }
-          50% {
-            width: 100%;
-            left: 0;
-          } /* Hold in place briefly */
-          100% {
-            width: 100%;
-            left: 100%;
-          }
-        }
-        .animate-slide-out {
-          animation: slide-out 500ms ease-in forwards;
-        }
+        .animate-slide-in { animation: slide-in 500ms ease-out forwards; }
+        @keyframes slide-out { 0% {width:100%;left:0;} 50% {width:100%;left:0;} 100% {width:100%;left:100%;} }
+        .animate-slide-out { animation: slide-out 500ms ease-in forwards; }
       `}</style>
     </Link>
   );

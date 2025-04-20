@@ -18,9 +18,7 @@ from app.core.ai_services import (
     process_voice_command_ai, 
     get_market_summary_ai,
     gemini_vision_model,
-    gemini_text_model,
-    groq_client,
-    groq_chat_model_id
+    gemini_text_model
 )
 from app.services.market_scraper import get_all_prices, get_scraper
 from app.core.config import get_settings
@@ -100,44 +98,29 @@ class DiseaseDetectorAgent(Agent):
             if context:
                 language = context.get("language", "en")
         
-        # Generate treatment recommendation using Groq
-        if groq_client:
-            try:
-                prompt = f"""Provide organic and conventional treatment options for {disease_name} in {crop_type}. 
-                Include locally available options common in Maharashtra, India. Keep it brief and practical."""
-                
-                chat_completion = groq_client.chat.completions.create(
-                    messages=[
-                        {"role": "user", "content": prompt}
-                    ],
-                    model=groq_chat_model_id,
-                    temperature=0.7,
-                    max_tokens=200,
-                )
-                
-                treatment = chat_completion.choices[0].message.content
-                
-                return Message(
-                    sender=self.agent_type,
-                    receiver=message.sender,
-                    content={"treatment": treatment},
-                    message_type="treatment_recommendation",
-                    context=message.context
-                )
-                
-            except Exception as e:
-                logger.error(f"Error getting treatment recommendation: {e}")
-                return Message(
-                    sender=self.agent_type,
-                    receiver=message.sender,
-                    content={"error": f"Error getting treatment recommendation: {str(e)}"},
-                    message_type="error"
-                )
-        else:
+        # Generate treatment recommendation using Gemini
+        try:
+            prompt = f"""Provide organic and conventional treatment options for {disease_name} in {crop_type}. 
+            Include locally available options common in Maharashtra, India. Keep it brief and practical."""
+            
+            result = await gemini_text_model(prompt)
+            
+            treatment = result
+            
             return Message(
                 sender=self.agent_type,
                 receiver=message.sender,
-                content={"error": "Groq client not configured for treatment recommendations"},
+                content={"treatment": treatment},
+                message_type="treatment_recommendation",
+                context=message.context
+            )
+                
+        except Exception as e:
+            logger.error(f"Error getting treatment recommendation: {e}")
+            return Message(
+                sender=self.agent_type,
+                receiver=message.sender,
+                content={"error": f"Error getting treatment recommendation: {str(e)}"},
                 message_type="error"
             )
 
@@ -523,49 +506,34 @@ class TranslatorAgent(Agent):
                     message_type="error"
                 )
             
-            # Use Groq for translation if available
-            if groq_client:
-                try:
-                    source_lang_name = self.languages.get(source_language, "the source language")
-                    target_lang_name = self.languages.get(target_language, "English")
-                    
-                    prompt = f"""Translate the following text from {source_lang_name} to {target_lang_name}.
-                    Only return the translated text, nothing else.
-                    
-                    Text to translate: {text}"""
-                    
-                    chat_completion = groq_client.chat.completions.create(
-                        messages=[
-                            {"role": "user", "content": prompt}
-                        ],
-                        model=groq_chat_model_id,
-                        temperature=0.3,
-                        max_tokens=200,
-                    )
-                    
-                    translated_text = chat_completion.choices[0].message.content
-                    
-                    return Message(
-                        sender=self.agent_type,
-                        receiver=message.sender,
-                        content={"translated_text": translated_text},
-                        message_type="translation_result",
-                        context=message.context
-                    )
-                    
-                except Exception as e:
-                    logger.error(f"Error in Groq translation: {e}")
-                    return Message(
-                        sender=self.agent_type,
-                        receiver=message.sender,
-                        content={"error": f"Error in translation: {str(e)}"},
-                        message_type="error"
-                    )
-            else:
+            # Use Gemini for translation
+            try:
+                source_lang_name = self.languages.get(source_language, "the source language")
+                target_lang_name = self.languages.get(target_language, "English")
+                
+                prompt = f"""Translate the following text from {source_lang_name} to {target_lang_name}.
+                Only return the translated text, nothing else.
+                
+                Text to translate: {text}"""
+                
+                result = await gemini_text_model(prompt)
+                
+                translated_text = result
+                
                 return Message(
                     sender=self.agent_type,
                     receiver=message.sender,
-                    content={"error": "Translation service not available (Groq not configured)"},
+                    content={"translated_text": translated_text},
+                    message_type="translation_result",
+                    context=message.context
+                )
+                    
+            except Exception as e:
+                logger.error(f"Error in translation: {e}")
+                return Message(
+                    sender=self.agent_type,
+                    receiver=message.sender,
+                    content={"error": f"Error in translation: {str(e)}"},
                     message_type="error"
                 )
                 

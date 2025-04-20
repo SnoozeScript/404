@@ -1,5 +1,4 @@
 import google.generativeai as genai
-from groq import Groq, RateLimitError, APIError
 from PIL import Image
 import io
 from typing import TYPE_CHECKING
@@ -30,19 +29,6 @@ except Exception as e:
     print(f"AI_SERVICES: Error configuring Gemini: {e}")
     gemini_vision_model = None
     gemini_text_model = None
-
-
-try:
-    if settings.GROQ_API_KEY and settings.GROQ_API_KEY != "YOUR_GROQ_API_KEY_NOT_SET":
-        groq_client = Groq(api_key=settings.GROQ_API_KEY)
-        # Specify model for Groq, e.g., Llama3 8b
-        groq_chat_model_id = "llama3-8b-8192"
-    else:
-        print("AI_SERVICES: Groq API key not configured. Groq features will not work.")
-        groq_client = None
-except Exception as e:
-    print(f"AI_SERVICES: Error configuring Groq: {e}")
-    groq_client = None
 
 
 # --- Disease Prediction Function ---
@@ -85,10 +71,10 @@ async def get_disease_prediction(image_bytes: bytes) -> str:
 # --- Yield Prediction Function ---
 async def get_yield_estimate(yield_input: 'YieldInput') -> str:
     """
-    Generates a yield estimate using Groq based on farmer's input.
+    Generates a yield estimate using Gemini based on farmer's input.
     """
-    if not groq_client:
-        return "Error: Groq client is not configured."
+    if not gemini_text_model:
+        return "Error: Gemini text model is not configured."
 
     try:
         # Include regional context in the prompt
@@ -107,42 +93,29 @@ async def get_yield_estimate(yield_input: 'YieldInput') -> str:
         Respond in English.
         """
 
-        chat_completion = groq_client.chat.completions.create(
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a helpful agricultural assistant providing yield estimates for farmers in the Baramati region of Maharashtra, India."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            model=groq_chat_model_id,
-            temperature=0.6, # Adjust creativity/factuality
-            max_tokens=150,
-        )
-        result = chat_completion.choices[0].message.content
-        return result.strip()
+        # Generate content
+        # Note: Check Gemini API documentation for latest recommended methods
+        response = gemini_text_model.generate_text(prompt)
 
-    except RateLimitError:
-        print("Error in Groq yield prediction: Rate limit exceeded.")
-        return "Error: The prediction service is currently busy. Please try again later."
-    except APIError as e:
-        print(f"Error in Groq yield prediction: {e}")
-        return f"Error communicating with prediction service: {str(e)}"
+        # Check for safety ratings or blocks if necessary (depends on API version/config)
+        # if response.prompt_feedback and response.prompt_feedback.block_reason:
+        #     return f"Error: Content blocked due to {response.prompt_feedback.block_reason}"
+
+        return response.text
+
     except Exception as e:
-        print(f"Unexpected error in Groq yield prediction: {e}")
-        return f"An unexpected error occurred while generating the yield estimate: {str(e)}"
+        print(f"Error in Gemini yield prediction: {e}")
+        # Consider more specific error handling based on potential Gemini exceptions
+        return f"Error generating yield estimate with Gemini: {str(e)}"
 
 
 # --- Voice Command Processing Function ---
 async def process_voice_command_ai(transcript: str, language: str = "en") -> str:
     """
-    Processes a voice transcript using Groq to understand intent and generate a response.
+    Processes a voice transcript using Gemini to understand intent and generate a response.
     """
-    if not groq_client:
-        return "Error: Groq client is not configured."
+    if not gemini_text_model:
+        return "Error: Gemini text model is not configured."
 
     # Basic language code mapping (expand as needed)
     lang_map = {"en": "English", "hi": "Hindi", "mr": "Marathi"}
@@ -178,51 +151,29 @@ async def process_voice_command_ai(transcript: str, language: str = "en") -> str
         5. Keep the response relatively short and easy to understand for a voice interaction.
         """
 
-        chat_completion = groq_client.chat.completions.create(
-            messages=[
-                 {
-                    "role": "system",
-                    "content": f"You are the FarmGenius voice assistant for farmers in Baramati. Respond concisely in {language_name}."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                 }
-            ],
-            model=groq_chat_model_id,
-            temperature=0.7,
-            max_tokens=100,
-        )
-        result = chat_completion.choices[0].message.content
-        return result.strip()
+        # Generate content
+        # Note: Check Gemini API documentation for latest recommended methods
+        response = gemini_text_model.generate_text(prompt)
 
-    except RateLimitError:
-        print("Error in Groq voice processing: Rate limit exceeded.")
-        # Provide response in the requested language if possible, otherwise English
-        error_msg = "Seva abhi vyast hai, kripya baad mein prayas karen." if language == "hi" else \
-                    "Seva sadhya vyasta आहे, कृपया नंतर प्रयत्न करा." if language == "mr" else \
-                    "The service is currently busy. Please try again later."
-        return error_msg
-    except APIError as e:
-        print(f"Error in Groq voice processing: {e}")
-        error_msg = f"Seva se sampark karne mein truti: {str(e)}" if language == "hi" else \
-                    f"Seveshi sampark karnyat truti: {str(e)}" if language == "mr" else \
-                    f"Error communicating with the service: {str(e)}"
-        return error_msg
+        # Check for safety ratings or blocks if necessary (depends on API version/config)
+        # if response.prompt_feedback and response.prompt_feedback.block_reason:
+        #     return f"Error: Content blocked due to {response.prompt_feedback.block_reason}"
+
+        return response.text
+
     except Exception as e:
-        print(f"Unexpected error in Groq voice processing: {e}")
-        error_msg = f"Ek anapekshit truti aayi: {str(e)}" if language == "hi" else \
-                    f"Ek anapekshit truti aali: {str(e)}" if language == "mr" else \
-                    f"An unexpected error occurred: {str(e)}"
-        return error_msg
+        print(f"Error in Gemini voice processing: {e}")
+        # Consider more specific error handling based on potential Gemini exceptions
+        return f"Error processing voice command with Gemini: {str(e)}"
+
 
 # --- (Optional) Market Data AI Summary ---
 async def get_market_summary_ai(market_data: list) -> str:
     """
-    Generates a brief summary of market data using Groq.
+    Generates a brief summary of market data using Gemini.
     """
-    if not groq_client:
-         return "Error: Groq client is not configured."
+    if not gemini_text_model:
+         return "Error: Gemini text model is not configured."
     if not market_data:
         return "No market data available to summarize."
 
@@ -235,17 +186,18 @@ async def get_market_summary_ai(market_data: list) -> str:
         Provide a very brief (1-2 sentence) summary highlighting any notable price points or trends based ONLY on this data.
         Respond in English.
         """
-        chat_completion = groq_client.chat.completions.create(
-            messages=[
-                {"role": "user", "content": prompt}
-            ],
-            model=groq_chat_model_id,
-            temperature=0.5,
-            max_tokens=60,
-        )
-        result = chat_completion.choices[0].message.content
-        return result.strip()
+
+        # Generate content
+        # Note: Check Gemini API documentation for latest recommended methods
+        response = gemini_text_model.generate_text(prompt)
+
+        # Check for safety ratings or blocks if necessary (depends on API version/config)
+        # if response.prompt_feedback and response.prompt_feedback.block_reason:
+        #     return f"Error: Content blocked due to {response.prompt_feedback.block_reason}"
+
+        return response.text
 
     except Exception as e:
         print(f"Error generating market summary: {e}")
-        return "Could not generate market summary."
+        # Consider more specific error handling based on potential Gemini exceptions
+        return f"Error generating market summary with Gemini: {str(e)}"

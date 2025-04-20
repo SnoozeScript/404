@@ -17,6 +17,7 @@ Pillow>=10.0.0,<11.0.0             # Image handling
 python-multipart>=0.0.9            # File uploads for FastAPI
 numpy>=1.24.0,<2.0.0               # Numerical operations for yield prediction
 pandas
+xgboost
 
 # --- HTTP & Scraping ---
 httpx>=0.27.0,<0.28.0              # Async HTTP client for scraping

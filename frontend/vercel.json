@@ -3,39 +3,10 @@
     {
       "source": "/api/(.*)",
       "destination": "https://four04-2gg4.onrender.com/api/$1"
-    }
-  ],
-  "redirects": [
-    {
-      "source": "/api/(.*)",
-      "destination": "https://four04-2gg4.onrender.com/api/$1",
-      "permanent": true
-    }
-  ]
-}
-
-
-{
-  "rewrites": [
+    },
     {
       "source": "/(.*)",
-      "destination": "/"
-    }
-  ]
-}
-
-{
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "https://four04-2gg4.onrender.com/api/$1"
-    }
-  ],
-  "redirects": [
-    {
-      "source": "/api/(.*)",
-      "destination": "https://four04-2gg4.onrender.com/api/$1",
-      "permanent": true
+      "destination": "/index.html"
     }
   ]
 }

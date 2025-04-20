@@ -54,6 +54,11 @@ app.include_router(api_router, prefix="/api/v1")
 async def read_root():
     return {"message": "Welcome to the FarmGenius API!"}
 
+# Health endpoint
+@app.get("/health", tags=["Health"])
+async def health_check():
+    return {"status": "ok"}
+
 # Add startup/shutdown events if needed later
 @app.on_event("startup")
 async def startup_event():

@@ -1,8 +1,0 @@
-{
-    "gemini": {
-      "api_key": "AIzaSyA5gQFnidMPiWtFOTjONA4mt85QYJ_2-4U"
-    },
-    "tts": {
-      "default_voice": "en-US-Standard-C"
-    }
-  }
